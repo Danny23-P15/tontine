@@ -1,0 +1,70 @@
+/* Container principal centré sur la page */
+div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #121212; /* Noir profond */
+  color: #ffffff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Titre "Connexion" */
+h2 {
+  color: #ffcc00; /* Jaune vif */
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Style commun pour les inputs */
+input {
+  width: 300px;
+  padding: 12px 15px;
+  margin: 10px 0;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background-color: #1e1e1e;
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+/* Changement de couleur au focus sur l'input */
+input:focus {
+  border-color: #ffcc00;
+}
+
+/* Style du bouton "Se connecter" */
+button {
+  width: 330px;
+  padding: 12px;
+  margin-top: 20px;
+  background-color: #ffcc00; /* Jaune */
+  color: #000; /* Texte noir pour lisibilité */
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.3s;
+}
+
+/* Effet au survol du bouton */
+button:hover {
+  background-color: #e6b800;
+  transform: translateY(-2px);
+}
+
+/* Effet au clic */
+button:active {
+  transform: translateY(0);
+}
+
+/* Optionnel : style pour les placeholders */
+input::placeholder {
+  color: #777;
+}

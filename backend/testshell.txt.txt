@@ -1,0 +1,120 @@
+from groups.models import ValidationGroup
+group = ValidationGroup.objects.create(
+     group_name="Mon groupe test",
+     initiator_phone_number="0341111111",
+     quorum=2
+)
+group
+
+
+
+
+from groups.models import ValidationGroup, GroupMembership, GroupRole
+
+group = ValidationGroup.objects.create(
+    group_name="Groupe Test",
+    initiator_phone_number="0341111111",
+    quorum=2
+)
+
+
+
+
+GroupMembership.objects.create(
+    group=group,
+    phone_number="0341111111",
+    cin="CIN001",
+    role=GroupRole.INITIATOR
+)
+
+
+
+GroupMembership.objects.create(
+    group=group,
+    phone_number="0342222222",
+    cin="CIN002",
+    role=GroupRole.VALIDATOR
+)
+
+GroupMembership.objects.create(
+    group=group,
+    phone_number="0343333333",
+    cin="CIN003",
+    role=GroupRole.VALIDATOR
+)
+
+group.update_active_status()
+
+
+
+
+
+
+
+
+
+
+ from groups.services.group_creation import create_group_request
+ success, reason, temp_group = create_group_request(
+...     initiator_phone="0341111111",
+...     group_name="Groupe Famille",
+...     quorum=2,
+...     validators=[
+... {"phone_number": "0342222222", "cin": "CIN002"},
+...         {"phone_number": "0343333333", "cin": "CIN003"},
+...     ]
+... )
+>>> success
+False
+>>> temp_group
+>>> temp_group.validators.all()
+Traceback (most recent call last):
+  File "<console>", line 1, in <module>
+AttributeError: 'NoneType' object has no attribute 'validators'
+
+
+
+
+>>> from groups.services.group_creation import create_group_request
+>>> create_group_request(
+... initiator_phone="0341111115",
+... group_name="Groupe Test",
+... quorum=2,
+... validators=[
+... {"phone_number": "0342222222", "cin": "CIN222"},
+...  {"phone_number": "0343333333", "cin": "CIN333"},
+... ],
+... )
+
+
+
+Pour voir les validateurs temporaire du groupe creation temporary
+from groups.models import TemporaryGroupValidator
+
+TemporaryGroupValidator.objects.filter(
+    group=temp_group
+)
+
+
+
+
+from groups.models import ValidationGroup
+from groups.services.operation_service import create_operation
+from groups.models import OperationType
+
+group = ValidationGroup.objects.first()
+
+success, reason, operation = create_operation(
+    group=group,
+    initiator_phone="0341111111",
+    operation_type=OperationType.ADD_VALIDATOR,
+    payload={
+        "validator_phone": "0344444444",
+        "cin": "CIN444"
+    }
+)
+
+success
+operation.reference
+operation.validations.all()
+

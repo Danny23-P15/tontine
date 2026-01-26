@@ -1,0 +1,41 @@
+.sidebar {
+  width: 220px;
+  background: #1f2937;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.logo {
+  margin-bottom: 30px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.nav {
+  flex: 1;
+}
+
+.nav-link {
+  display: block;
+  padding: 10px;
+  margin-bottom: 8px;
+  color: #d1d5db;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.nav-link.active {
+  background: #374151;
+  color: white;
+}
+
+.logout-btn {
+  background: #ef4444;
+  border: none;
+  padding: 10px;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
