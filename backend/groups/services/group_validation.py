@@ -56,7 +56,7 @@ def respond_to_group_creation(
         temp_group.save(update_fields=["is_cancelled"])
 
         notify_operation_status(
-            operation=temp_group,
+            source=temp_group,
             event=OperationEvent.GROUP_CREATION_REJECTED,
             actor_phone=validator_phone
         )
@@ -69,7 +69,7 @@ def respond_to_group_creation(
 
     if accepted < total:
         notify_operation_status(
-            operation=temp_group,
+            source=temp_group,
             event=OperationEvent.VALIDATION_RECORDED,
             actor_phone=validator_phone
         )
@@ -101,7 +101,7 @@ def respond_to_group_creation(
     temp_group.delete()
 
     notify_operation_status(
-        operation=group,
+        source=group,
         event=OperationEvent.GROUP_CREATED
     )
 
@@ -119,7 +119,7 @@ def respond_to_group_deletion(operation: Operation):
         operation.save(update_fields=["status", "resolved_at"])
 
         notify_operation_status(
-            operation=operation,
+            source=operation,
             event=OperationEvent.GROUP_DELETION_REJECTED
         )
         return
@@ -146,6 +146,6 @@ def respond_to_group_deletion(operation: Operation):
     operation.save(update_fields=["status", "resolved_at"])
 
     notify_operation_status(
-        operation=operation,
+        source=operation,
         event=OperationEvent.GROUP_DELETED
     )

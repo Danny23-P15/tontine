@@ -1,5 +1,7 @@
 from groups.models import GroupMembership, GroupRole
-from groups.models import ValidationGroup
+from groups.models import ValidationGroup, TemporaryGroupCreation
+from django.utils import timezone
+
 
 def get_user_group_stats(phone_number: str) -> dict:
     memberships = GroupMembership.objects.filter(
@@ -26,6 +28,11 @@ def get_user_group_stats(phone_number: str) -> dict:
 
 def can_create_group(phone_number: str) -> tuple[bool, str | None]:
     stats = get_user_group_stats(phone_number)
+    active_request_exists = TemporaryGroupCreation.objects.filter(
+        initiator_phone_number=phone_number,
+        is_cancelled=False,
+        expires_at__gt=timezone.now()
+    ).exists()
 
     if stats["initiator_count"] >= 1:
         return False, "Vous êtes déjà initiateur d’un groupe"
@@ -34,6 +41,11 @@ def can_create_group(phone_number: str) -> tuple[bool, str | None]:
         return False, (
             "Vous appartenez déjà à 3 groupes de validation "
             "(1+2 ou 0+3)"
+        )
+    if active_request_exists:
+        return (
+            False,
+            "Vous avez déjà une demande de création de groupe en cours."
         )
 
     return True, None

@@ -29,6 +29,7 @@ OPERATION_NOTIFICATION_MAP = {
         "actionable": False,
     },
 
+
     OperationEvent.GROUP_CREATION_REJECTED: {
         "source_type": NotificationSourceType.TEMP_GROUP_CREATION,
         "recipients": ["initiator", "validators"],
@@ -74,7 +75,7 @@ OPERATION_NOTIFICATION_MAP = {
     },
 
     OperationEvent.VALIDATOR_ADDED: {
-        "source_type": NotificationSourceType.OPERATION,
+        "source_type": NotificationSourceType.GROUP,
         "recipients": ["initiator", "validators"],
         "title": "Validateur ajouté",
         "message": (
@@ -114,4 +115,28 @@ OPERATION_NOTIFICATION_MAP = {
         ),
         "actionable": False,
     },
+
+    OperationEvent.ADD_VALIDATOR_REQUESTED: {
+        "source_type": NotificationSourceType.OPERATION,
+        "recipients": ["validators"],
+        "title": "Validation requise",
+        "message": (
+            "{validator_phone} souhaite ajouter un nouveau validateur "
+            "au groupe « {group_name} »."
+        ),
+        "actionable": True,
+    },
+
+    OperationEvent.VALIDATION_RECORDED: {
+        "source_type": NotificationSourceType.OPERATION,
+        "recipients": ["initiator"],
+        "title": "Validation enregistrée",
+        "message": (
+            "{validator_phone} a répondu à la demande "
+            "d’ajout de validateur pour le groupe « {group_name} »."
+        ),
+        "actionable": False,
+    }
+
+
 }

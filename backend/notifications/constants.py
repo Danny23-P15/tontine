@@ -9,6 +9,7 @@ class OperationEvent(str, Enum):
     GROUP_DELETED = "group_deleted"
     GROUP_DELETION_REJECTED = "group_deletion_rejected"
 
+    ADD_VALIDATOR_REQUESTED = "add_validator_requested"
     VALIDATOR_ADDED = "validator_added"
     ADD_VALIDATOR_REJECTED = "add_validator_rejected"
 

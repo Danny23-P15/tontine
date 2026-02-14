@@ -1,6 +1,6 @@
 from notifications.mapping import OPERATION_NOTIFICATION_MAP
 from notifications.services.notification_service import notify
-from groups.models import GroupMembership, GroupRole
+from groups.models import *
 from notifications.constants import OperationEvent
 # from notifications.models import NotificationType
 from notifications.services.recipients import initiator_only, validators_only
@@ -8,7 +8,7 @@ from notifications.services.recipients import initiator_only, validators_only
 
 from notifications.mapping import OPERATION_NOTIFICATION_MAP
 from notifications.models import Notification, NotificationSourceType
-from groups.models import GroupMembership, GroupRole, ValidationGroup
+from groups.models import GroupMembership, GroupRole
 from notifications.services.notification_service import notify
 from notifications.constants import OperationEvent
 from groups.models import GroupMembership, GroupRole
@@ -16,7 +16,7 @@ from groups.models import GroupMembership, GroupRole
 
 def notify_operation_status(
     *,
-    source,
+    source : TemporaryGroupCreation | Operation | ValidationGroup,
     event: OperationEvent,
     actor_phone: str | None = None,
 ):
@@ -81,13 +81,16 @@ def notify_operation_status(
     # =========================
 
     context = {
-        "group_name": getattr(source, "group_name", None),
+        "group_name": getattr(source, "name", None),
         "validator_phone": actor_phone,
     }
 
     # =========================
     # 🔔 Création des notifications
     # =========================
+    # Notification.source_reference = f"{source_type.lower()}-{source.id}"
+    source_reference = f"{source_type.lower()}-{source.id}"
+
 
     for phone in recipients:
         Notification.objects.create(
@@ -95,52 +98,9 @@ def notify_operation_status(
             title=config["title"],
             message=config["message"].format(**context),
             source_type=source_type,
-            source_id=source.id,
-            actionable=config.get("actionable", False),
+            # source_id=source.id,
+            source_reference=source_reference,
+            # actionable=config.get("actionable", False),
         )
 
 
-
-# OPERATION_NOTIFICATION_MAP = {
-
-#     OperationEvent.VALIDATOR_ADDED: {
-#         "recipients": initiator_only,
-#         "title": "Validateur ajouté",
-#         "message": lambda op: (
-#             f"Le validateur {op.payload['validator_phone_number']} "
-#             f"a été ajouté au groupe « {op.group.group_name} »."
-#         ),
-#         "type": NotificationType.ADD_VALIDATOR_APPROVED
-#     },
-
-#     OperationEvent.ADD_VALIDATOR_REJECTED: {
-#         "recipients": initiator_only,
-#         "title": "Ajout de validateur refusé",
-#         "message": lambda op: (
-#             f"L’ajout du validateur {op.payload['validator_phone_number']} "
-#             f"a été refusé."
-#         ),
-#         "type": NotificationType.ADD_VALIDATOR_REJECTED
-#     },
-
-#     OperationEvent.VALIDATOR_REMOVED: {
-#         "recipients": initiator_only,
-#         "title": "Validateur supprimé",
-#         "message": lambda op: (
-#             f"Le validateur {op.payload['validator_phone_number']} "
-#             f"a été retiré du groupe « {op.group.group_name} »."
-#         ),
-#         "type": NotificationType.VALIDATOR_REMOVED
-#     },
-
-#     OperationEvent.REMOVE_VALIDATOR_REJECTED: {
-#         "recipients": initiator_only,
-#         "title": "Suppression de validateur refusée",
-#         "message": lambda op: (
-#             f"La suppression du validateur {op.payload['validator_phone_number']} "
-#             f"a été refusée."
-#         ),
-#         "type": NotificationType.REMOVE_VALIDATOR_REJECTED
-#     },
-
-# }

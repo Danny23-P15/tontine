@@ -1,27 +1,196 @@
-/* .notifications-page {
-  max-width: 600px;
-  margin: auto;
+/* Conteneur principal - Look Dark Premium */
+.notifications-container {
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, #1a1a1a 0%, #0a0a0a 100%);
+  padding: 30px;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color: #e0e0e0;
 }
 
-.notification-card {
-  border: 1px solid #ddd;
-  padding: 12px;
+/* En-tête avec ligne d'accentuation */
+.notifications-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  margin-bottom: 40px;
+  border-bottom: 1px solid rgba(255, 204, 0, 0.2); /* Bordure jaune subtile */
+}
+
+.header-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #ffcc00;
+  margin: 0;
+  letter-spacing: -1px;
+}
+
+.header-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+/* Boutons Professionnels */
+.refresh-button,
+.logout-button,
+.action-button {
+  padding: 10px 22px;
+  border: 1px solid transparent;
   border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Bouton Refresh - Style Outline Jaune */
+.refresh-button {
+  background: transparent;
+  color: #ffcc00;
+  border-color: #ffcc00;
+  min-width: 150px;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: rgba(255, 204, 0, 0.1);
+  box-shadow: 0 0 15px rgba(255, 204, 0, 0.2);
+}
+
+/* Bouton Logout - Style Minimaliste */
+.logout-button {
+  background: #1e1e1e;
+  color: #ff4d4d;
+  border: 1px solid #333;
+}
+
+.logout-button:hover {
+  background: #2a1515;
+  border-color: #ff4d4d;
+}
+
+/* Statistiques - Carte flottante sombre */
+.notifications-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25px;
+  background: #1e1e1e;
+  border-radius: 16px;
+  border: 1px solid #333;
+  margin-bottom: 35px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.count-badge {
+  background: #ffcc00;
+  color: #000;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.count-text {
+  font-size: 1.1rem;
+  color: #bbb;
+  font-weight: 400;
+}
+
+/* Actions groupées */
+.action-button {
+  background: #2a2a2a;
+  color: #fff;
+  border: 1px solid #444;
+}
+
+.action-button:first-child:hover {
+  border-color: #ffcc00;
+  color: #ffcc00;
+}
+
+.action-button:last-child:hover {
+  border-color: #ff4d4d;
+  color: #ff4d4d;
+}
+
+/* État vide - Épuré */
+.empty-state {
+  text-align: center;
+  padding: 80px 40px;
+  background: #181818;
+  border-radius: 20px;
+  border: 1px dashed #444;
+  max-width: 550px;
+  margin: 60px auto;
+}
+
+.empty-icon {
+  font-size: 3.5rem;
+  margin-bottom: 20px;
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+
+.empty-title {
+  font-size: 1.8rem;
+  color: #fff;
   margin-bottom: 12px;
 }
 
-.actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
+.empty-subtitle {
+  color: #888;
+  font-size: 1rem;
+  margin-bottom: 30px;
 }
 
-button.accept {
-  background: #2ecc71;
-  color: white;
+/* Liste de notifications */
+.notifications-list {
+  display: grid;
+  gap: 16px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
-button.reject {
-  background: #e74c3c;
-  color: white;
-} */
+/* Responsive optimisé */
+@media (max-width: 768px) {
+  .notifications-container { padding: 15px; }
+  
+  .notifications-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  
+  .header-controls { width: 100%; }
+  .refresh-button { flex: 1; }
+
+  .notifications-stats {
+    flex-direction: column;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  
+  .stats-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .action-button { justify-content: center; padding: 10px 5px; font-size: 0.8rem; }
+}
+
+.notification-card {
+  background: #000;
+  border: 1px solid #000;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  box-shadow: #1e1e1e inset;
+}
+
+.notification-card h4 {
+  margin: 0 0 5px;
+}
+
+.notification-card small {
+  color: #777;
+}

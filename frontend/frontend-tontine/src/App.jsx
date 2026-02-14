@@ -6,6 +6,10 @@ import CreateGroupPage from "./pages/CreateGroupPage";
 import PrivateRoute from "./routes/PrivateRoute";
 import PublicRoute from "./routes/PublicRoute";
 import Layout from "./components/Layout";
+import NotificationsInboxPage from "./pages/NotificationsInboxPage";
+import MesGroupesPage from "./pages/MyGroupsPage";
+import GroupDetailPage from "./pages/GroupeDetailPage";
+
 
 function App() {
   return (
@@ -28,6 +32,7 @@ function App() {
             }
           />
 
+
           <Route
             path="/notifications"
             element={
@@ -38,6 +43,18 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route
+            path="/group/:groupId"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <GroupDetailPage />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+
+          
 
           <Route
             path="/groups/create"
@@ -50,6 +67,30 @@ function App() {
             }
           />
 
+          <Route
+            path="/notifications/inbox"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <NotificationsInboxPage />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/groups"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <MesGroupesPage />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+
+
+
           {/* Route 404 si nécessaire */}
           <Route
             path="*"
@@ -60,6 +101,7 @@ function App() {
               </div>
             }
           />
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>

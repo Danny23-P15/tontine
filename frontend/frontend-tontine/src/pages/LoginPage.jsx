@@ -29,23 +29,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div>
-      <h2>Connexion</h2>
+    <div className="login-container">
+      <h2 className="login-title">Connexion</h2>
 
       <input
+        className="login-input"
         placeholder="Téléphone"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
       />
 
       <input
+        className="login-input"
         type="password"
         placeholder="Mot de passe"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <button onClick={handleLogin}>Se connecter</button>
+      <button className="login-button" onClick={handleLogin}>
+        Se connecter
+      </button>
     </div>
   );
 }

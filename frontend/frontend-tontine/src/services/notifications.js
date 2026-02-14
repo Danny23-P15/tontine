@@ -11,6 +11,11 @@ export const getPendingNotifications = async () => {
   }
 };
 
+export const getInboxNotifications = async () => {
+  const res = await api.get("/notifications/inbox/");
+  return res.data;
+};
+
 export const respondToGroupCreation = async (payload) => {
   try {
     const response = await api.post("/groups/creation/respond", payload);

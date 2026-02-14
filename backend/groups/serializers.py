@@ -16,9 +16,9 @@ class CreateGroupRequestSerializer(serializers.Serializer):
             )
 
         for v in value:
-            if "phone_number" not in v or "cin" not in v:
+            if "phone_number" not in v :
                 raise serializers.ValidationError(
-                    "Chaque validateur doit contenir phone_number et cin."
+                    "Chaque validateur doit contenir phone_number."
                 )
 
         return value
@@ -41,3 +41,16 @@ class RespondGroupCreationSerializer(serializers.Serializer):
                 "rejection_reason": "Motif de refus obligatoire."
             })
         return data
+
+
+class AddValidatorSerializer(serializers.Serializer):
+    validator_phone_number = serializers.CharField(max_length=20)
+    # cin = serializers.CharField(max_length=20)
+
+# class RespondValidatorRequestSerializer(serializers.Serializer):
+#     action = serializers.ChoiceField(choices=["accept", "refuse"])
+
+class RespondAddValidatorSerializer(serializers.Serializer):
+    operation_id = serializers.IntegerField()
+    accept = serializers.BooleanField()
+    rejection_reason = serializers.CharField(required=False, allow_blank=True)

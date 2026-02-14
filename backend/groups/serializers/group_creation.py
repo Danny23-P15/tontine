@@ -18,3 +18,5 @@ class GroupCreationSerializer(serializers.Serializer):
                 "Le quorum ne peut pas dépasser le nombre de validateurs"
             )
         return data
+    
+    

@@ -1,0 +1,104 @@
+.group-detail-page {
+  padding: 24px;
+}
+
+.page-title {
+  font-size: 22px;
+  margin-bottom: 16px;
+}
+
+.page-msg {
+  padding: 20px;
+  text-align: center;
+}
+
+.page-msg.error {
+  color: #c0392b;
+}
+
+.group-summary {
+  background: #f9fafb;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.group-summary p {
+  margin: 6px 0;
+}
+
+.active {
+  color: #16a34a;
+  font-weight: bold;
+}
+
+.pending {
+  color: #d97706;
+  font-weight: bold;
+}
+
+.my-role {
+  color: #2563eb;
+  font-weight: bold;
+}
+
+.section-title {
+  margin-bottom: 10px;
+}
+
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.member-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid #e5e7eb;
+}
+
+.member-name {
+  font-weight: bold;
+}
+
+.member-meta {
+  font-size: 13px;
+  color: #555;
+}
+
+.member-role {
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  color: white;
+}
+
+.member-role.initiator {
+  background: #2563eb;
+}
+
+.member-role.validator {
+  background: #16a34a;
+}
+
+.initiator-actions {
+  margin-top: 20px;
+}
+
+.action-btn {
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #2563eb;
+  color: white;
+}
+
+.action-btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

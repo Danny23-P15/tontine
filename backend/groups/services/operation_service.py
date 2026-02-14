@@ -8,6 +8,8 @@ from groups.services.group_rules import can_remove_validator
 from groups.models import Operation, OperationType
 from django.utils import timezone
 import uuid
+from notifications.services.operation_notifications import notify_operation_status
+from notifications.constants import OperationEvent
 
 
 from groups.models import (
@@ -19,6 +21,7 @@ from groups.models import (
     OperationType,
     OperationStatus,
     OperationValidation,
+    TemporaryAddValidator
 
 )
 from groups.utils import generate_reference  # on va la créer juste après
@@ -85,7 +88,7 @@ def create_operation(
     return True, None, operation
 
 
-def create_add_validator_operation(
+def request_add_validator(
     *,
     group: ValidationGroup,
     initiator_phone: str,
@@ -93,26 +96,30 @@ def create_add_validator_operation(
     validator_cin: str
 ) -> tuple[bool, str | None]:
 
-    # 🔐 RÈGLE D’AUTORISATION
     if group.initiator_phone_number != initiator_phone:
         return False, "Seul l’initiateur peut ajouter un validateur"
 
-    # 🔒 GROUPE ACTIF
     if not group.is_active:
         return False, "Le groupe n’est pas actif"
 
-    # 🧠 RÈGLE MÉTIER
     allowed, reason = can_add_validator(
         group=group,
         initiator_phone=initiator_phone,
         validator_phone=validator_phone,
         validator_cin=validator_cin
     )
-
     if not allowed:
         return False, reason
+    
+    with transaction.atomic():
 
-    # ⚙️ CRÉATION OPÉRATION
+        temp_add = TemporaryAddValidator.objects.create(
+            group=group,
+            # initiator_phone=initiator_phone,
+            # validator_phone=validator_phone,
+            expires_at=timezone.now() + timedelta(hours=48)
+        )
+
     operation = Operation.objects.create(
         group=group,
         initiator_phone_number=initiator_phone,
@@ -122,10 +129,10 @@ def create_add_validator_operation(
             "validator_phone_number": validator_phone,
             "cin": validator_cin
         },
+        status=OperationStatus.PENDING,
         expires_at=timezone.now() + timezone.timedelta(hours=48)
     )
 
-    # 📩 ENVOI DES VALIDATIONS
     validators = group.memberships.filter(
         role=GroupRole.VALIDATOR,
         left_at__isnull=True
@@ -135,10 +142,18 @@ def create_add_validator_operation(
         OperationValidation(
             operation=operation,
             validator_phone_number=v.phone_number,
-            validation_reference=f"VAL-{uuid.uuid4().hex[:8]}"
+            validation_reference=f"VAL-{uuid.uuid4().hex[:8]}",
+            status=OperationStatus.PENDING
         )
         for v in validators
     ])
+
+    # 🔔 NOTIFICATION DES VALIDATEURS ACTUELS
+    notify_operation_status(
+        source=operation,
+        event=OperationEvent.ADD_VALIDATOR_REQUESTED,
+        actor_phone=initiator_phone
+    )
 
     return True, "Demande d’ajout de validateur envoyée"
 

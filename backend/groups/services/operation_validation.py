@@ -89,6 +89,7 @@ def respond_to_operation_validation(
             else OperationEvent.VALIDATOR_REMOVED
         )
 
+
         notify_operation_status(operation=operation, event=event)
         return True, "L’opération a été validée et exécutée"
 
@@ -100,6 +101,81 @@ def respond_to_operation_validation(
     )
 
     return True, "Votre validation a été enregistrée"
+
+
+def respond_to_add_validator_request(
+    *,
+    operation: Operation,
+    validator_phone: str,
+    accept: bool,
+    rejection_reason: str | None = None
+) -> tuple[bool, str]:
+
+    if operation.operation_type != OperationType.ADD_VALIDATOR:
+        return False, "Opération invalide"
+
+    if operation.expires_at < timezone.now():
+        return False, "Cette demande a expiré"
+
+    try:
+        validation = OperationValidation.objects.get(
+            operation=operation,
+            validator_phone_number=validator_phone
+        )
+    except OperationValidation.DoesNotExist:
+        return False, "Vous n’êtes pas autorisé à répondre"
+
+    if validation.has_accepted is not None:
+        return False, "Vous avez déjà répondu"
+
+    # 📝 Enregistrement réponse
+    validation.has_accepted = accept
+    validation.rejection_reason = rejection_reason if not accept else None
+    validation.responded_at = timezone.now()
+    validation.save()
+
+    # 📊 Calcul du quorum
+    accepted_count = operation.validations.filter(
+        has_accepted=True
+    ).count()
+
+    quorum = operation.group.quorum
+
+    # ⏳ quorum pas encore atteint
+    if accepted_count < quorum:
+        notify_operation_status(
+            source=operation,
+            event=OperationEvent.VALIDATION_RECORDED,
+            actor_phone=validator_phone
+        )
+        return True, "Votre réponse a été enregistrée"
+
+    # ✅ quorum atteint → ajout du validateur
+    payload = operation.payload
+    validator_phone = payload["validator_phone_number"]
+    cin = payload["cin"]
+
+    GroupMembership.objects.create(
+        group=operation.group,
+        phone_number=validator_phone,
+        cin=cin,
+        role=GroupRole.VALIDATOR
+    )
+
+    operation.mark_completed()
+
+    notify_operation_status(
+    source=operation.group,
+    event=OperationEvent.VALIDATOR_ADDED,
+    actor_phone=validator_phone,
+    extra_context={
+        "validator_phone": validator_phone,
+        "group_name": operation.group.group_name
+    }
+)
+
+
+    return True, "Le validateur a été ajouté au groupe"
 
 def execute_add_validator(operation: Operation):
     data = operation.payload

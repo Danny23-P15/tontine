@@ -41,19 +41,29 @@ export default function NotificationsPage() {
     loadNotifications();
   };
 
-  const handleRespond = async (notification, accept) => {
-    try {
-      await respondToGroupCreation({
-        temp_group_id: notification.action.payload.temp_group_id,
-        accept: accept,
-      });
+const handleRespond = async (notification, accept) => {
+  try {
+    const { endpoint, method, payload } = notification.action;
 
-      alert(accept ? "Création acceptée" : "Création refusée");
-      loadNotifications(); // refresh
-    } catch (e) {
-      alert(e?.message || "Erreur lors de la réponse");
-    }
-  };
+    await fetch(`http://127.0.0.1:8000${endpoint}`, {
+      method: method || "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({
+        ...payload,
+        accept: accept,
+      }),
+    });
+
+    alert(accept ? "Action acceptée" : "Action refusée");
+    loadNotifications();
+  } catch (e) {
+    alert("Erreur lors de la réponse");
+  }
+};
+
 
   if (loading) {
     return (

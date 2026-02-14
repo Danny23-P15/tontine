@@ -23,6 +23,10 @@ class ValidationGroup(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
+    def update_active_status(self):
+        self.is_active = True
+        self.save(update_fields=["is_active"])
+
 # fonction pour décider si le groupe est actif
 
 def update_active_status(self):
@@ -144,6 +148,7 @@ class OperationStatus(models.TextChoices):
     APPROVED = "APPROVED", "Approved"
     REJECTED = "REJECTED", "Rejected"
     CANCELLED = "CANCELLED", "Cancelled"
+    COMPLETED = "COMPLETED", "Completed"
 
 class OperationType(models.TextChoices):
     ADD_VALIDATOR = "ADD_VALIDATOR", "Add validator"
@@ -185,10 +190,22 @@ class Operation(models.Model):
         blank=True
     )
 
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     resolved_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
+    
+    def mark_completed(self):
+        if self.status == OperationStatus.COMPLETED:
+            return
+
+        self.status = OperationStatus.COMPLETED
+        self.completed_at = timezone.now()
+        self.save(update_fields=["status", "completed_at"])
+
 
 
     def __str__(self):
@@ -230,6 +247,10 @@ class OperationValidation(models.Model):
         blank=True
     )
 
+    has_accepted = models.BooleanField(
+        null=True,
+        blank=True
+    )
     validated_at = models.DateTimeField(
         null=True,
         blank=True
@@ -256,3 +277,88 @@ class TemporaryGroupValidatorStatus(models.TextChoices):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+
+
+class TemporaryAddValidator(models.Model):
+    """
+    Opération temporaire d’ajout d’un validateur à un groupe existant.
+    """
+
+    group = models.ForeignKey(
+        "groups.ValidationGroup",
+        on_delete=models.CASCADE,
+        related_name="pending_validator_additions"
+    )
+
+    initiator_phone_number = models.CharField(
+        max_length=20,
+        db_index=True
+    )
+
+    validator_phone_number = models.CharField(
+        max_length=20,
+        db_index=True
+    )
+
+    # validator_cin = models.CharField(
+    #     max_length=50
+    # )
+
+    # =====================
+    # Réponse du validateur
+    # =====================
+    has_accepted = models.BooleanField(
+        null=True,
+        blank=True
+    )
+
+    rejection_reason = models.TextField(
+        null=True,
+        blank=True
+    )
+
+    responded_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    # =====================
+    # Cycle de vie
+    # =====================
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    expires_at = models.DateTimeField()
+
+    is_cancelled = models.BooleanField(
+        default=False
+    )
+
+    # =====================
+    # Meta
+    # =====================
+    class Meta:
+        db_table = "groups_temp_add_validator"
+        indexes = [
+            models.Index(
+                fields=["validator_phone_number"]
+            ),
+            models.Index(
+                fields=["initiator_phone_number"]
+            ),
+        ]
+        unique_together = (
+            "group",
+            "validator_phone_number",
+            "is_cancelled"
+        )
+
+    def __str__(self):
+        return (
+            f"Ajout validateur {self.validator_phone_number} "
+            f"au groupe {self.group.group_name}"
+        )
+
+    def has_expired(self) -> bool:
+        return self.expires_at < timezone.now()

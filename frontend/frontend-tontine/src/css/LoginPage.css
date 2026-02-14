@@ -1,5 +1,5 @@
 /* Container principal centré sur la page */
-div {
+.login-container {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -11,7 +11,7 @@ div {
 }
 
 /* Titre "Connexion" */
-h2 {
+.login-title {
   color: #ffcc00; /* Jaune vif */
   font-size: 2.5rem;
   margin-bottom: 2rem;
@@ -20,7 +20,7 @@ h2 {
 }
 
 /* Style commun pour les inputs */
-input {
+.login-input {
   width: 300px;
   padding: 12px 15px;
   margin: 10px 0;
@@ -34,12 +34,12 @@ input {
 }
 
 /* Changement de couleur au focus sur l'input */
-input:focus {
+.login-input:focus {
   border-color: #ffcc00;
 }
 
 /* Style du bouton "Se connecter" */
-button {
+.login-button {
   width: 330px;
   padding: 12px;
   margin-top: 20px;
@@ -54,17 +54,17 @@ button {
 }
 
 /* Effet au survol du bouton */
-button:hover {
+.login-button:hover {
   background-color: #e6b800;
   transform: translateY(-2px);
 }
 
 /* Effet au clic */
-button:active {
+.login-button:active {
   transform: translateY(0);
 }
 
 /* Optionnel : style pour les placeholders */
-input::placeholder {
+.login-input::placeholder {
   color: #777;
 }
