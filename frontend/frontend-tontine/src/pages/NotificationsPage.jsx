@@ -79,11 +79,19 @@ const handleRespond = async (notification, accept) => {
       throw new Error(data.message || "Erreur backend");
     }
 
-    setNotifications(prev =>
-      prev.filter(n => n.id !== notification.id)
-    );
-
-    alert(accept ? "✅ Action acceptée" : "❌ Action refusée");
+    if (accept) {
+      // Ne pas supprimer : marquer comme acceptée et retirer l'action
+      setNotifications(prev =>
+        prev.map(n =>
+          n.id === notification.id ? { ...n, status: "ACCEPTED", action: null } : n
+        )
+      );
+      alert("✅ Action acceptée");
+    } else {
+      // Pour un refus, on supprime toujours la notification
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      alert("❌ Action refusée");
+    }
 
   } catch (e) {
     console.error(e);

@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useEffect, useState } from "react";
-import { getMyGroups } from "../services/groups";
+import { getInboxNotifications } from "../services/notifications";
 // Importation des icônes
 import { 
   Hourglass, 
@@ -17,37 +17,31 @@ import "../css/Sidebar.css";
 function Sidebar() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
-  const [isInitiator, setIsInitiator] = useState(false);
-  const [loadingRoles, setLoadingRoles] = useState(true);
-
-  // Vérifier si l'utilisateur est déjà initiateur
-  useEffect(() => {
-    const checkUserRole = async () => {
-      try {
-        const data = await getMyGroups();
-        const groups = data.results || [];
-        const hasInitiatorRole = groups.some(group => group.role === "INITIATOR");
-        setIsInitiator(hasInitiatorRole);
-      } catch (err) {
-        console.error("Erreur lors de la vérification du rôle:", err);
-      } finally {
-        setLoadingRoles(false);
-      }
-    };
-
-    checkUserRole();
-  }, []);
-
-  const handleCreateGroupClick = (e) => {
-    if (isInitiator) {
-      e.preventDefault();
-    }
-  };
+  const [inboxCount, setInboxCount] = useState(0);
 
   const handleLogout = () => {
     logout();
     navigate("/login", { replace: true });
   };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadCount = async () => {
+      try {
+        const data = await getInboxNotifications();
+        if (!mounted) return;
+        const count = (typeof data.count === "number") ? data.count : (Array.isArray(data.results) ? data.results.length : 0);
+        setInboxCount(count);
+      } catch (e) {
+        console.error("Erreur chargement inbox count", e);
+      }
+    };
+
+    loadCount();
+    const interval = setInterval(loadCount, 30000);
+    return () => { mounted = false; clearInterval(interval); };
+  }, []);
 
   return (
     <aside className="sidebar">
@@ -56,13 +50,13 @@ function Sidebar() {
           <div className="logo-icon-wrapper">
             <ShieldCheck size={20} color="#000" strokeWidth={3} />
           </div>
-          <h2 className="logo-text">Valideo</h2>
+          <h2 className="logo-text"><img src="/src/assets/logo_yellowed.png" alt="Valideo"/></h2>
         </div>
 
-        <div className="user-header">
+        {/* <div className="user-header">
           <span className="user-label">Connecté :</span>
           <div className="user-number">{user?.phone_number || localStorage.getItem("phone_number") || "—"}</div>
-        </div>
+        </div> */}
 
         <nav className="nav">
           <p className="nav-section-title">Validation</p>
@@ -76,12 +70,7 @@ function Sidebar() {
             <Users size={18} className="icon" /> 
             <span className="link-text">Mes groupes</span>
           </NavLink>
-          <NavLink 
-            to="/groups/create" 
-            className={`nav-link ${isInitiator ? 'nav-link-disabled' : ''}`}
-            onClick={handleCreateGroupClick}
-            title={isInitiator ? "Vous êtes déjà initiateur d'un groupe" : ""}
-          >
+          <NavLink to="/groups/create" className="nav-link">
             <PlusCircle size={18} className="icon" /> 
             <span className="link-text">Créer un groupe</span>
           </NavLink>
@@ -94,6 +83,7 @@ function Sidebar() {
           <NavLink to="/notifications/inbox" className="nav-link">
             <Bell size={18} className="icon" /> 
             <span className="link-text">Notifications</span>
+            {inboxCount > 0 && <span className="inbox-badge">|{inboxCount}|</span>}
           </NavLink>
         </nav>
       </div>

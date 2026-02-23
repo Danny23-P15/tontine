@@ -19,6 +19,8 @@ from groups.services.operation_validation import respond_to_add_validator_reques
 from groups.serializers import RespondAddValidatorSerializer, RemoveValidatorSerializer
 from groups.services.operation_service import request_remove_validator
 from groups.models import Operation
+from groups.models import TemporaryGroupCreation
+from django.utils import timezone
 from groups.services.operation_validation import respond_to_remove_validator_request
 from groups.models import OperationType
 from groups.services.operation_validation import respond_to_delete_group_request
@@ -291,6 +293,38 @@ class MyInitiatedOperationsAPIView(APIView):
                 "expires_at": op.expires_at,
                 "approved_count": approved,
                 "total_validators": total,
+            })
+
+        # Inclure aussi les demandes de création de groupe temporaires initiées
+        temp_groups = TemporaryGroupCreation.objects.filter(
+            initiator_phone_number=phone
+        ).order_by("-created_at")
+
+        now = timezone.now()
+
+        for tg in temp_groups:
+            accepted_count = tg.validators.filter(has_accepted=True).count()
+            total_validators = tg.validators.count()
+
+            # Déterminer un statut simple pour l'affichage
+            if tg.is_cancelled:
+                tg_status = "CANCELLED"
+            elif tg.expires_at and tg.expires_at < now:
+                tg_status = "EXPIRED"
+            elif accepted_count >= tg.quorum:
+                tg_status = "APPROVED"
+            else:
+                tg_status = "PENDING"
+
+            data.append({
+                "reference": f"temp-group-{tg.id}",
+                "group_name": tg.group_name,
+                "operation_type": "GROUP_CREATION",
+                "status": tg_status,
+                "created_at": tg.created_at,
+                "expires_at": tg.expires_at,
+                "approved_count": accepted_count,
+                "total_validators": total_validators,
             })
 
         return Response(data)

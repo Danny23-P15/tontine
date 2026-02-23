@@ -187,6 +187,21 @@
   box-shadow: #1e1e1e inset;
 }
 
+.notification-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 14px;
+  font-weight: 700;
+  text-transform: capitalize;
+  margin-left: 12px;
+}
+
+.notification-badge.accepted {
+  background: rgba(40, 167, 69, 0.12);
+  color: #28a745;
+  border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
 .notification-card h4 {
   margin: 0 0 5px;
 }

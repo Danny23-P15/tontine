@@ -83,6 +83,19 @@ function GroupDetailPage() {
     fetchUsers();
   }, []); // Pas de dépendances car getToken est appelé à l'intérieur
 
+  const getMemberName = (member) => {
+    if (member.full_name) return member.full_name;
+
+    // Chercher dans la liste d'utilisateurs chargée
+    const found = allUsers.find(u =>
+      u.phone_number === member.phone_number ||
+      u.phone === member.phone_number ||
+      u.telephone === member.phone_number ||
+      u.id?.toString() === member.phone_number
+    );
+
+    return found?.full_name || member.phone_number || "";
+  };
 const handleAddValidator = async () => {
   try {
     const token = getToken();
@@ -185,7 +198,11 @@ const handleDeleteGroupRequest = async () => {
     return <div className="page-msg error">{error}</div>;
   }
 
-return (
+  // Calculer le nombre de validateurs actifs et la limite (par défaut 5)
+  const validatorCount = group.members.filter(m => m.role === "VALIDATOR").length;
+  const validatorMax = group.validator_max_number || 5;
+
+  return (
   <div className="group-detail-container">
     <header className="group-detail-header">
       <div>
@@ -202,7 +219,7 @@ return (
       <aside className="group-stats">
         <div className="stat-card">
           <span className="stat-label">Seuil de validation (Quorum)</span>
-          <span className="stat-value">{group.quorum} membres</span>
+          <span className="stat-value">{group.quorum}</span>
         </div>
         <div className="stat-card gold-border">
           <span className="stat-label">Votre Rôle</span>
@@ -220,7 +237,7 @@ return (
       <main className="members-section">
         <div className="section-header">
           <h3>Membres du groupe <span className="member-count">({group.members.length})</span></h3>
-          {group.me?.role === "INITIATOR" && group.members?.length < 5 && (
+          {group.me?.role === "INITIATOR" && validatorCount < validatorMax && (
             <button className="btn-add-mini" onClick={() => setShowValidator(true)}>+ Ajouter</button>
           )}
         </div>
@@ -228,9 +245,9 @@ return (
         <div className="members-stack">
           {group.members.map((member) => (
             <div key={member.phone_number} className="member-item">
-              <div className="member-avatar-mini">{member.full_name?.charAt(0)?.toUpperCase()}</div>
+              <div className="member-avatar-mini">{getMemberName(member)?.charAt(0)?.toUpperCase()}</div>
               <div className="member-body">
-                <span className="member-fullname">{member.full_name}</span>
+                <span className="member-fullname">{getMemberName(member)}</span>
                 <span className="member-sub">{member.phone_number} | {member.cin}</span>
               </div>
               <div className="member-tag-wrapper">

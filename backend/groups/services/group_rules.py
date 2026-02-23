@@ -67,6 +67,10 @@ def can_add_validator_to_temp_group(
     if any(v["cin"] == validator_cin for v in temp_validators):
         return False, "Ce CIN est déjà utilisé dans ce groupe"
 
+    # Ne pas dépasser 5 validateurs lors de la création temporaire
+    if len(temp_validators) >= 5:
+        return False, "Un groupe ne peut pas dépasser 5 validateurs"
+
     stats = get_user_group_stats(validator_phone)
 
     if stats["total_groups"] >= 3:
@@ -91,6 +95,15 @@ def can_add_validator(
         left_at__isnull=True
     ).exists():
         return False, "Ce validateur (CIN) est déjà dans le groupe"
+
+    # Limite maximale de validateurs par groupe
+    active_validators_count = group.memberships.filter(
+        role=GroupRole.VALIDATOR,
+        left_at__isnull=True
+    ).count()
+
+    if active_validators_count >= getattr(group, "validator_max_number", 5):
+        return False, "Le groupe a atteint le nombre maximum de validateurs (5)"
 
     stats = get_user_group_stats(validator_phone)
 

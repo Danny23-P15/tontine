@@ -282,7 +282,7 @@ return (
               <input
                 type="text"
                 className="form-input search-input"
-                placeholder="Rechercher par nom, téléphone ou CIN..."
+                placeholder="Rechercher par nom, téléphone..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
