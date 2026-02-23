@@ -14,6 +14,12 @@ class OperationEvent(str, Enum):
     ADD_VALIDATOR_REJECTED = "add_validator_rejected"
 
     VALIDATOR_REMOVED = "validator_removed"
+    REMOVE_VALIDATOR_REQUESTED = "remove_validator_requested"
     REMOVE_VALIDATOR_REJECTED = "remove_validator_rejected"
 
     GROUP_CREATION_REQUEST = "group_creation_request"
+
+    DELETE_GROUP_REQUESTED = "delete_group_requested"
+    DELETE_GROUP_REJECTED = "delete_group_rejected"
+    DELETE_GROUP_COMPLETED = "delete_group_completed"
+    DELETE_GROUP_EXPIRED = "delete_group_expired"

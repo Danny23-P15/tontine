@@ -1,104 +1,120 @@
-.group-detail-page {
-  padding: 24px;
+.group-detail-container {
+  padding: 40px;
+  background: #0f0f0f;
+  min-height: 100vh;
+  color: #fff;
 }
 
-.page-title {
-  font-size: 22px;
-  margin-bottom: 16px;
-}
-
-.page-msg {
-  padding: 20px;
-  text-align: center;
-}
-
-.page-msg.error {
-  color: #c0392b;
-}
-
-.group-summary {
-  background: #f9fafb;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.group-summary p {
-  margin: 6px 0;
-}
-
-.active {
-  color: #16a34a;
-  font-weight: bold;
-}
-
-.pending {
-  color: #d97706;
-  font-weight: bold;
-}
-
-.my-role {
-  color: #2563eb;
-  font-weight: bold;
-}
-
-.section-title {
-  margin-bottom: 10px;
-}
-
-.members-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.member-card {
+.group-detail-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
-  border-radius: 6px;
-  background: white;
-  border: 1px solid #e5e7eb;
+  margin-bottom: 40px;
+  border-bottom: 1px solid #222;
+  padding-bottom: 20px;
 }
 
-.member-name {
+.group-name { font-size: 32px; color: #FFD700; margin: 0; }
+.creation-date { color: #666; font-size: 14px; }
+
+/* Status Pill */
+.status-pill {
+  padding: 8px 16px;
+  border-radius: 20px;
   font-weight: bold;
+  font-size: 13px;
+}
+.status-pill.active { background: rgba(0, 255, 0, 0.1); color: #00ff00; }
+.status-pill.pending { background: rgba(255, 215, 0, 0.1); color: #FFD700; border: 1px solid #FFD700; }
+
+/* Grille */
+.group-content-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 40px;
 }
 
-.member-meta {
-  font-size: 13px;
-  color: #555;
-}
-
-.member-role {
-  font-size: 13px;
-  padding: 4px 10px;
+/* Stat Cards */
+.stat-card {
+  background: #161616;
+  padding: 20px;
   border-radius: 12px;
-  color: white;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+.stat-card.gold-border { border-left: 4px solid #FFD700; }
+.stat-label { color: #888; font-size: 12px; text-transform: uppercase; margin-bottom: 8px; }
+.stat-value { font-size: 20px; font-weight: bold; }
+.stat-value.highlight { color: #FFD700; }
+
+/* Membres */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
-.member-role.initiator {
-  background: #2563eb;
+.member-count { color: #FFD700; font-weight: normal; margin-left: 10px; }
+
+.members-stack {
+  background: #161616;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-.member-role.validator {
-  background: #16a34a;
+.member-item {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #222;
+  transition: background 0.2s;
+}
+.member-item:hover { background: #1c1c1c; }
+
+.member-avatar-mini {
+  width: 40px; height: 40px; background: #FFD700; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px;
+  color: #000; font-size: 16px;
 }
 
-.initiator-actions {
-  margin-top: 20px;
+.member-body { flex: 1; }
+.member-fullname { display: block; font-weight: 600; }
+.member-sub { font-size: 12px; color: #666; }
+
+/* Tags et Boutons */
+.role-tag {
+  font-size: 11px; padding: 4px 8px; border-radius: 4px; background: #333; margin-right: 10px;
+}
+.role-tag.initiator { color: #FFD700; background: rgba(255, 215, 0, 0.1); }
+
+.btn-remove-member {
+  background: transparent; border: none; color: #ff4444; cursor: pointer; font-size: 16px;
 }
 
-.action-btn {
-  padding: 10px 16px;
-  border-radius: 6px;
-  border: none;
-  background: #2563eb;
-  color: white;
+.delete-group-link {
+  background: transparent; border: none; color: #ff4444; font-size: 13px; cursor: pointer;
+  text-decoration: underline; margin-top: 20px;
 }
 
-.action-btn.disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+/* Modal */
+.validator-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center;
+}
+
+.validator-modal {
+  background: #1a1a1a; padding: 30px; border-radius: 16px; border: 1px solid #FFD700; width: 400px;
+}
+
+.validator-modal select {
+  width: 100%; padding: 12px; background: #222; border: 1px solid #333; color: white; margin: 20px 0;
+}
+
+.btn-confirm {
+  background: #FFD700; color: black; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;
+}
+.btn-cancel {
+  background: transparent; color: white; border: none; margin-left: 10px; cursor: pointer;
 }

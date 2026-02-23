@@ -129,6 +129,71 @@
 .add-controls {
   display: flex;
   gap: 12px;
+  position: relative;
+}
+
+.search-container {
+  flex: 1;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+}
+
+.dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #262626;
+  border: 1px solid #ffcc00;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 12px 15px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(255, 204, 0, 0.1);
+  padding-left: 20px;
+}
+
+.dropdown-item-name {
+  font-weight: 600;
+  color: #ffcc00;
+}
+
+.dropdown-item-meta {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.dropdown-empty {
+  padding: 15px;
+  text-align: center;
+  color: #888;
+  font-size: 0.9rem;
 }
 
 .add-btn {
@@ -139,6 +204,7 @@
   border-radius: 8px;
   font-weight: bold;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .add-btn:disabled {
@@ -185,4 +251,58 @@
   text-align: center;
   font-size: 0.8rem;
   color: #555;
+}
+
+/* Message de restriction pour les initiateurs */
+.initiator-restriction {
+  text-align: center;
+  padding: 60px 30px;
+  background: linear-gradient(135deg, rgba(255, 204, 0, 0.1), rgba(255, 102, 0, 0.1));
+  border: 2px dashed #ffcc00;
+  border-radius: 12px;
+  color: #fff;
+}
+
+.restriction-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.initiator-restriction h3 {
+  font-size: 1.8rem;
+  color: #ffcc00;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+}
+
+.initiator-restriction p {
+  font-size: 1rem;
+  color: #ccc;
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+
+.back-btn {
+  padding: 12px 30px;
+  background-color: #ffcc00;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: all 0.3s;
+}
+
+.back-btn:hover {
+  background-color: #e6b800;
+  transform: translateY(-2px);
+}
+
+.loading-msg {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+  font-size: 1.1rem;
 }

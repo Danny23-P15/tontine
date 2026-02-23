@@ -1,5 +1,6 @@
 from django.utils import timezone
 
+
 from groups.models import (
     TemporaryGroupCreation,
     TemporaryGroupValidator,
@@ -7,7 +8,8 @@ from groups.models import (
     GroupRole,
     OperationValidation,
     OperationType,
-    ValidationStatus
+    ValidationStatus,
+    OperationStatus
 )
 from notifications.constants import OperationEvent
 from notifications.models import Notification
@@ -83,6 +85,7 @@ def get_pending_notifications(user):
         validator_phone_number=phone_number,
         status=ValidationStatus.PENDING,
         operation__operation_type=OperationType.ADD_VALIDATOR,
+        operation__status=OperationStatus.PENDING,
         operation__expires_at__gt=now
     )
 
@@ -96,7 +99,7 @@ def get_pending_notifications(user):
         ).count()
 
         results.append({
-            "id": f"add-validator-op-{ov.id}",
+            "id": f"add-validator-op-{operation.id}",
             "type": "ADD_VALIDATOR_REQUEST",
             "event": OperationEvent.ADD_VALIDATOR_REQUESTED.value,
             "title": "Ajout de validateur",
@@ -109,10 +112,10 @@ def get_pending_notifications(user):
 
             # ✅ ACTION SPÉCIFIQUE AU VALIDATEUR
             "action": {
-                "endpoint": "/api/operations/validate/",
+                "endpoint": "/api/operations/respond/",
                 "method": "POST",
                 "payload": {
-                    "operation_validation_id": ov.id
+                    "operation_id": operation.id
                 }
             },
 
@@ -131,11 +134,113 @@ def get_pending_notifications(user):
         # ===============================
         # 👉 ADD_VALIDATOR / REMOVE_VALIDATOR / FINANCE
         # même shape, autre "type"
+        # 3️⃣ Suppression de validateur (OPERATION)
 
-        return {
-            "count": len(results),
-            "results": results
-        }
+    pending_remove_ops = OperationValidation.objects.select_related(
+        "operation",
+        "operation__group"
+    ).filter(
+        validator_phone_number=phone_number,
+        status=ValidationStatus.PENDING,
+        operation__operation_type=OperationType.REMOVE_VALIDATOR,
+        operation__status=OperationStatus.PENDING,
+        operation__expires_at__gt=now
+    )   
+        
+    for ov in pending_remove_ops:
+        operation = ov.operation
+        group = operation.group
+        accepted_count = OperationValidation.objects.filter(
+            operation=operation,
+            status=ValidationStatus.ACCEPTED
+        ).count()
+
+        results.append({
+            "id": f"remove-validator-op-{operation.id}",
+            "type": "REMOVE_VALIDATOR_REQUEST",
+            "event": OperationEvent.REMOVE_VALIDATOR_REQUESTED.value,
+            "title": "Suppression de validateur",
+            "message": (
+                f"L’initiateur {operation.initiator_phone_number} "
+                f"souhaite supprimer {operation.payload.get('validator_phone_number')} "
+                f"du groupe « {group.group_name} »."
+            ),
+            "created_at": operation.created_at,
+
+            "action": {
+                "endpoint": "/api/operations/respond/",
+                "method": "POST",
+                "payload": {
+                    "operation_id": operation.id
+                }
+            },
+
+            "context": {
+                "group_name": group.group_name,
+                "initiator_phone": operation.initiator_phone_number,
+                "validator_to_remove": operation.payload.get("validator_phone_number"),
+                "validators_required": group.quorum,
+                "validators_accepted": accepted_count
+            }
+        })
+
+        # ov
+
+# 4️⃣ Suppression de groupe (OPERATION)
+
+    pending_delete_ops = OperationValidation.objects.select_related(
+        "operation",
+        "operation__group"
+    ).filter(
+        validator_phone_number=phone_number,
+        status=ValidationStatus.PENDING,
+        operation__operation_type=OperationType.DELETE_GROUP,
+        operation__status=OperationStatus.PENDING,
+        operation__expires_at__gt=now
+    )
+
+    for ov in pending_delete_ops:
+        operation = ov.operation
+        group = operation.group
+
+        accepted_count = OperationValidation.objects.filter(
+            operation=operation,
+            status=ValidationStatus.ACCEPTED
+        ).count()
+
+        results.append({
+            "id": f"delete-group-op-{operation.id}",
+            "type": "DELETE_GROUP_REQUEST",
+            "event": OperationEvent.DELETE_GROUP_REQUESTED.value,
+            "title": "Suppression du groupe",
+            "message": (
+                f"L’initiateur {operation.initiator_phone_number} "
+                f"souhaite supprimer le groupe « {group.group_name} »."
+            ),
+            "created_at": operation.created_at,
+
+            "action": {
+                "endpoint": "/api/operations/respond/",
+                "method": "POST",
+                "payload": {
+                    "operation_id": operation.id
+                }
+            },
+
+            "context": {
+                "group_name": group.group_name,
+                "initiator_phone": operation.initiator_phone_number,
+                "validators_required": group.quorum,
+                "validators_accepted": accepted_count
+            }
+        })
+
+    return {
+        "count": len(results),
+        "results": results
+    }
+
+
 
 def get_notification_inbox(user):
     notifications = Notification.objects.filter(

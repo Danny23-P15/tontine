@@ -12,7 +12,7 @@ from groups.models import GroupMembership, GroupRole
 from notifications.services.notification_service import notify
 from notifications.constants import OperationEvent
 from groups.models import GroupMembership, GroupRole
-
+# 
 
 def notify_operation_status(
     *,
@@ -20,6 +20,12 @@ def notify_operation_status(
     event: OperationEvent,
     actor_phone: str | None = None,
 ):
+    
+
+    print("EVENT RECU:", event)
+    print("TYPE EVENT:", type(event))
+    print("MAPPING KEYS:", OPERATION_NOTIFICATION_MAP.keys())
+
     """
     Envoie les notifications selon l'événement et le mapping.
     Aucune logique métier ici.
@@ -30,6 +36,9 @@ def notify_operation_status(
         return
 
     source_type = config["source_type"]
+
+    print("SOURCE_TYPE:", source_type)
+    print("IS OPERATION?", source_type == NotificationSourceType.OPERATION)
     recipients = set()
 
     # =========================
@@ -42,7 +51,7 @@ def notify_operation_status(
         group = None  # pas encore de groupe
 
     elif source_type == NotificationSourceType.OPERATION:
-        group = source.group
+        group = getattr(source, "group", None)
 
     elif source_type == NotificationSourceType.GROUP:
         group = source
@@ -50,6 +59,17 @@ def notify_operation_status(
     # =========================
     # 👥 Détermination des destinataires
     # =========================
+    print("GROUP:", group)
+
+    if group:
+        print("VALIDATORS:", list(
+            GroupMembership.objects.filter(
+                group=group,
+                role=GroupRole.VALIDATOR,
+                left_at__isnull=True
+            ).values_list("phone_number", flat=True)
+        ))
+
 
     for target in config["recipients"]:
 
@@ -80,8 +100,16 @@ def notify_operation_status(
     # 📝 Contexte du message
     # =========================
 
+    # Extract group_name from different source types
+    if hasattr(source, 'group_name'):
+        group_name = source.group_name
+    elif hasattr(source, 'group'):
+        group_name = getattr(source.group, 'group_name', None)
+    else:
+        group_name = None
+
     context = {
-        "group_name": getattr(source, "name", None),
+        "group_name": group_name,
         "validator_phone": actor_phone,
     }
 
@@ -91,7 +119,7 @@ def notify_operation_status(
     # Notification.source_reference = f"{source_type.lower()}-{source.id}"
     source_reference = f"{source_type.lower()}-{source.id}"
 
-
+    print("RECIPIENTS FINAL:", recipients)
     for phone in recipients:
         Notification.objects.create(
             recipient_phone_number=phone,
@@ -104,3 +132,4 @@ def notify_operation_status(
         )
 
 
+# 

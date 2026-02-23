@@ -45,7 +45,7 @@ OPERATION_NOTIFICATION_MAP = {
         "recipients": ["initiator", "validators"],
         "title": "Groupe créé",
         "message": (
-            "Le groupe « {group_name} » a été créé avec succès."
+            "Le groupe « {group_name} » a été créé avec succès suite à la validation de tous les validateurs."
         ),
         "actionable": False,
     },
@@ -127,6 +127,17 @@ OPERATION_NOTIFICATION_MAP = {
         "actionable": True,
     },
 
+    OperationEvent.REMOVE_VALIDATOR_REQUESTED: {
+        "source_type": NotificationSourceType.OPERATION,
+        "recipients": ["validators"],
+        "title": "Validation requise",
+        "message": (
+            "{validator_phone} souhaite supprimer un validateur "
+            "du groupe « {group_name} »."
+        ),
+        "actionable": True,
+    },
+
     OperationEvent.VALIDATION_RECORDED: {
         "source_type": NotificationSourceType.OPERATION,
         "recipients": ["initiator"],
@@ -136,7 +147,26 @@ OPERATION_NOTIFICATION_MAP = {
             "d’ajout de validateur pour le groupe « {group_name} »."
         ),
         "actionable": False,
+    },
+
+    OperationEvent.DELETE_GROUP_REQUESTED: {
+        "source_type": NotificationSourceType.OPERATION,
+        "recipients": ["validators"],
+        "title": "Validation requise",
+        "message": (
+            "{validator_phone} souhaite supprimer le groupe "
+            "« {group_name} »."
+        ),
+        "actionable": True,
+    },
+
+    OperationEvent.DELETE_GROUP_EXPIRED: {
+        "source_type": NotificationSourceType.OPERATION,
+        "recipients": ["initiator"],
+        "title": "Demande expirée",
+        "message": "La demande de suppression du groupe « {group_name} » a expiré.",
     }
+
 
 
 }

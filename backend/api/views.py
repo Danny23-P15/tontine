@@ -9,6 +9,7 @@ from api.serializers import RespondOperationSerializer
 from rest_framework.permissions import IsAuthenticated
 from api.serializers import UserMinimalSerializer
 from core.models import User
+from groups.models import GroupMembership
 
 
 class PhoneTokenObtainPairView(TokenObtainPairView):
@@ -55,5 +56,23 @@ class UserListAPIView(APIView):
 
     def get(self, request):
         users = User.objects.exclude(id=request.user.id)
-        serializer = UserMinimalSerializer(users, many=True)
-        return Response(serializer.data)
+
+        available = []
+
+        for u in users:
+            # compter les memberships actifs (left_at is null) pour le numéro de téléphone
+            count = GroupMembership.objects.filter(
+                phone_number=u.phone_number,
+                left_at__isnull=True
+            ).count()
+
+            # ne garder que si < 3 groupes
+            if count < 3:
+                available.append({
+                    "id": u.id,
+                    "phone_number": u.phone_number,
+                    "full_name": u.full_name,
+                    "groups_count": count,
+                })
+
+        return Response(available)

@@ -30,7 +30,7 @@ class PendingOperationSerializer(serializers.ModelSerializer):
 
     def get_approved_count(self, obj):
         return obj.validations.filter(
-            status=ValidationStatus.APPROVED
+            status=ValidationStatus.ACCEPTED
         ).count()
 
     def get_rejected_count(self, obj):

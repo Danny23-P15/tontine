@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getMyGroups } from "../services/groups";
 import "../css/groupCreation.css";
 
 function CreateGroupPage() {
@@ -9,12 +10,33 @@ function CreateGroupPage() {
   const [quorum, setQuorum] = useState(1);
   const [users, setUsers] = useState([]);
   const [selectedValidators, setSelectedValidators] = useState([]);
-  const [newValidator, setNewValidator] = useState(""); // Pour l'option sélectionnée
+  const [searchQuery, setSearchQuery] = useState(""); // Pour la recherche
+  const [showDropdown, setShowDropdown] = useState(false); // Pour afficher/masquer le dropdown
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [isInitiator, setIsInitiator] = useState(false);
+  const [loadingRoles, setLoadingRoles] = useState(true);
 
   const token = localStorage.getItem("access_token");
+
+  // Vérifier si l'utilisateur est déjà initiateur
+  useEffect(() => {
+    const checkUserRole = async () => {
+      try {
+        const data = await getMyGroups();
+        const groups = data.results || [];
+        const hasInitiatorRole = groups.some(group => group.role === "INITIATOR");
+        setIsInitiator(hasInitiatorRole);
+      } catch (err) {
+        console.error("Erreur lors de la vérification du rôle:", err);
+      } finally {
+        setLoadingRoles(false);
+      }
+    };
+
+    checkUserRole();
+  }, []);
 
   // 1️⃣ Charger les users
   useEffect(() => {
@@ -42,26 +64,11 @@ function CreateGroupPage() {
       });
   }, [token]);
 
-  // 2️⃣ Ajouter un validateur depuis la liste déroulante
-  const addValidator = () => {
-    if (!newValidator) {
-      setError("Veuillez sélectionner un utilisateur");
-      return;
-    }
-
-    // Trouver l'utilisateur sélectionné
-    const userToAdd = users.find(user => 
-      user.phone_number === newValidator || user.id?.toString() === newValidator
-    );
-
-    if (!userToAdd) {
-      setError("Utilisateur non trouvé");
-      return;
-    }
-
+  // 2️⃣ Ajouter un validateur depuis la recherche
+  const addValidator = (user) => {
     // Vérifier si déjà sélectionné
     const exists = selectedValidators.find(
-      (v) => v.phone_number === userToAdd.phone_number
+      (v) => v.phone_number === user.phone_number
     );
 
     if (exists) {
@@ -79,15 +86,16 @@ function CreateGroupPage() {
     setSelectedValidators([
       ...selectedValidators,
       {
-        phone_number: userToAdd.phone_number,
-        cin: userToAdd.cin,
-        full_name: userToAdd.full_name,
-        id: userToAdd.id,
+        phone_number: user.phone_number,
+        cin: user.cin,
+        full_name: user.full_name,
+        id: user.id,
       },
     ]);
 
-    // Réinitialiser la sélection
-    setNewValidator("");
+    // Réinitialiser la recherche
+    setSearchQuery("");
+    setShowDropdown(false);
     setError("");
   };
 
@@ -110,10 +118,8 @@ const handleSubmit = async (e) => {
     return;
   }
 
-  if (quorum > selectedValidators.length) {
-    setError(
-      `Le quorum (${quorum}) ne peut pas dépasser le nombre de validateurs (${selectedValidators.length})`
-    );
+  if (quorum >= selectedValidators.length) {
+    setError("Quorum doit être inférieur au nombre de validateur");
     setLoading(false);
     return;
   }
@@ -159,10 +165,16 @@ const handleSubmit = async (e) => {
 };
 
 
-  // Filtrer les utilisateurs non encore sélectionnés
-  const availableUsers = users.filter(user => 
-    !selectedValidators.some(validator => validator.phone_number === user.phone_number)
-  );
+  // Filtrer les utilisateurs par recherche et non encore sélectionnés
+  const filteredUsers = users.filter(user => {
+    const isSelected = selectedValidators.some(validator => validator.phone_number === user.phone_number);
+    const matchesSearch = !searchQuery || 
+      user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.phone_number.includes(searchQuery) ||
+      (user.cin && user.cin.includes(searchQuery));
+    
+    return !isSelected && matchesSearch;
+  });
 
 // ... (vos imports et logique restent identiques)
 
@@ -170,13 +182,30 @@ return (
   <div className="group-page-container">
     <h2 className="group-page-title">Créer un groupe</h2>
 
-    {error && (
-      <div className="error-banner">
-        {error}
+    {loadingRoles ? (
+      <div className="loading-msg">Chargement en cours...</div>
+    ) : isInitiator ? (
+      <div className="initiator-restriction">
+        <div className="restriction-icon">⚠️</div>
+        <h3>Vous êtes déjà initiateur d'un groupe</h3>
+        <p>Vous ne pouvez initier qu'un seul groupe à la fois.</p>
+        <p>Pour créer un autre groupe, veuillez terminer l'initialisation du groupe actuel ou contacter l'administrateur.</p>
+        <button 
+          className="back-btn"
+          onClick={() => navigate("/groups")}
+        >
+          Retour à mes groupes
+        </button>
       </div>
-    )}
+    ) : (
+      <>
+        {error && (
+          <div className="error-banner">
+            {error}
+          </div>
+        )}
 
-    <form onSubmit={handleSubmit} className="group-form">
+        <form onSubmit={handleSubmit} className="group-form">
       {/* Nom du groupe */}
       <div className="form-section">
         <label className="form-label">
@@ -249,30 +278,42 @@ return (
         <div className="add-validator-box">
           <h4 className="add-title">Ajouter un membre</h4>
           <div className="add-controls">
-            <select
-              className="form-select"
-              value={newValidator}
-              onChange={(e) => setNewValidator(e.target.value)}
-              disabled={loadingUsers || selectedValidators.length >= 5}
-            >
-              <option value="">
-                {loadingUsers ? "Chargement..." : "Choisir un utilisateur..."}
-              </option>
-              {availableUsers.map((user) => (
-                <option key={user.phone_number} value={user.phone_number}>
-                  {user.full_name} ({user.phone_number})
-                </option>
-              ))}
-            </select>
-            
-            <button
-              type="button"
-              className="add-btn"
-              onClick={addValidator}
-              disabled={!newValidator || selectedValidators.length >= 5 || loadingUsers}
-            >
-              Ajouter
-            </button>
+            <div className="search-container">
+              <input
+                type="text"
+                className="form-input search-input"
+                placeholder="Rechercher par nom, téléphone ou CIN..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowDropdown(true); // Afficher le dropdown lors de la recherche
+                }}
+                onFocus={() => setShowDropdown(true)}
+                disabled={loadingUsers || selectedValidators.length >= 5}
+              />
+              
+              {showDropdown && filteredUsers.length > 0 && (
+                <div className="dropdown-list">
+                  {filteredUsers.map((user) => (
+                    <button
+                      key={user.phone_number}
+                      type="button"
+                      className="dropdown-item"
+                      onClick={() => addValidator(user)}
+                    >
+                      <div className="dropdown-item-name">{user.full_name}</div>
+                      <div className="dropdown-item-meta">
+                        {user.phone_number} | {user.cin}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {showDropdown && filteredUsers.length === 0 && searchQuery && (
+                <div className="dropdown-empty">Aucun utilisateur trouvé</div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -287,6 +328,8 @@ return (
 
       <div className="required-footer">* Champs obligatoires</div>
     </form>
+      </>
+    )}
   </div>
 );
 }

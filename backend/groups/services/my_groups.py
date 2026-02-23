@@ -7,7 +7,9 @@ def get_my_groups(user):
     # Groupes où l'utilisateur est membre (initiator ou validator)
     memberships = GroupMembership.objects.select_related("group").filter(
         phone_number=phone,
-        left_at__isnull=True
+        left_at__isnull=True,
+        group__deleted_at__isnull=True,
+        group__is_active=True
     )
 
     results = []

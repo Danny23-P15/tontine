@@ -34,6 +34,7 @@ def get_group_detail(user, group_id):
     return {
         "id": group.id,
         "group_name": group.group_name,
+        "quorum": group.quorum,
         "is_active": group.is_active,
         "created_at": group.created_at,
 

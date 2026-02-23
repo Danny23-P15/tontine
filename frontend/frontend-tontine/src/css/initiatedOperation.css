@@ -1,0 +1,242 @@
+/* Palette de couleurs */
+:root {
+  --gold: #FFD700;
+  --dark-pure: #0A0A0A;
+  --dark-card: #161616;
+  --dark-border: #2A2A2A;
+  --text-white: #FFFFFF;
+  --text-gray: #888888;
+  --success: #28a745;
+  --pending: #FFD700;
+  --error: #dc3545;
+}
+
+.operations-container {
+  padding: 30px;
+  background-color: var(--dark-pure);
+  min-height: 100vh;
+  color: var(--text-white);
+  font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+.page-header {
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.page-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.header-line {
+  width: 60px;
+  height: 4px;
+  background: var(--gold);
+  border-radius: 2px;
+}
+
+.refresh-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: transparent;
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: rgba(255, 215, 0, 0.1);
+  transform: rotate(90deg);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Boutons de filtre */
+.filter-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 10px 18px;
+  border: 2px solid var(--dark-border);
+  background-color: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-gray);
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.filter-btn.active {
+  background-color: var(--gold);
+  color: var(--dark-pure);
+  border-color: var(--gold);
+}
+
+/* Grille de cartes */
+.operations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+/* Style de la carte */
+.operation-card {
+  background: var(--dark-card);
+  border: 1px solid var(--dark-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.operation-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--gold);
+}
+
+.card-top {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--dark-border);
+  background: rgba(255, 215, 0, 0.02);
+}
+
+.card-top h3 {
+  font-size: 18px;
+  color: var(--gold);
+  margin: 0;
+}
+
+/* Badges de statut */
+.status-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.status-badge.pending { background: rgba(255, 215, 0, 0.1); color: var(--gold); border: 1px solid var(--gold); }
+.status-badge.completed { background: rgba(40, 167, 69, 0.1); color: var(--success); border: 1px solid var(--success); }
+.status-badge.rejected { background: rgba(220, 53, 69, 0.1); color: var(--error); border: 1px solid var(--error); }
+
+.card-body {
+  padding: 20px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.info-row .label { color: var(--text-gray); font-size: 14px; }
+.info-row .value { color: var(--text-white); font-weight: 600; }
+
+/* Barre de progression */
+.progress-section {
+  margin-bottom: 20px;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: var(--text-gray);
+}
+
+.progress-bar-bg {
+  height: 8px;
+  background: #222;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFD700, #FFA500);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  transition: width 0.5s ease-in-out;
+}
+
+/* Meta info (Dates) */
+.meta-info {
+  border-top: 1px solid var(--dark-border);
+  padding-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.meta-info p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-gray);
+}
+
+.expiry {
+  color: #ff9f43 !important;
+}
+
+.cancel-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 12px;
+  border-top: 1px solid #2A2A2A;
+  padding-top: 15px;
+}
+
+.cancel-btn:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.cancel-btn:active {
+  transform: translateY(0);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 100px;
+  color: var(--text-gray);
+  border: 2px dashed var(--dark-border);
+  border-radius: 20px;
+}

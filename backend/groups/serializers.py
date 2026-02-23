@@ -27,7 +27,7 @@ class CreateGroupRequestSerializer(serializers.Serializer):
 # from rest_framework import serializers
 
 class RespondGroupCreationSerializer(serializers.Serializer):
-    temp_group_id = serializers.CharField()
+    temp_group_id = serializers.IntegerField()
     accept = serializers.BooleanField()
     rejection_reason = serializers.CharField(
         required=False,
@@ -43,6 +43,7 @@ class RespondGroupCreationSerializer(serializers.Serializer):
         return data
 
 
+
 class AddValidatorSerializer(serializers.Serializer):
     validator_phone_number = serializers.CharField(max_length=20)
     # cin = serializers.CharField(max_length=20)
@@ -54,3 +55,6 @@ class RespondAddValidatorSerializer(serializers.Serializer):
     operation_id = serializers.IntegerField()
     accept = serializers.BooleanField()
     rejection_reason = serializers.CharField(required=False, allow_blank=True)
+
+class RemoveValidatorSerializer(serializers.Serializer):
+    validator_phone_number = serializers.CharField()

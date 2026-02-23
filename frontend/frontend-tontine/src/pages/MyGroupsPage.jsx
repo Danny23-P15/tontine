@@ -34,48 +34,66 @@ function MesGroupesPage() {
   }
 
   return (
-    <div className="groups-page">
-      <h2 className="page-title">Mes groupes</h2>
+  <div className="groups-container">
+    <header className="groups-header">
+      <div className="header-text">
+        <h2 className="page-title">Mes Cercles de Gestion</h2>
+        <p className="sub-title">Visualisez et gérez vos groupes de validation collective</p>
+      </div>
+      <button className="btn-create-shortcut" onClick={() => navigate('/groups/create')}>
+        + Nouveau Groupe
+      </button>
+    </header>
 
-      {groups.length === 0 ? (
-        <p className="empty-msg">Vous n’appartenez à aucun groupe.</p>
-      ) : (
-        <div className="groups-list">
-          {groups.map((group) => (
-            <div key={group.id} className="group-card">
-              <div className="group-info">
+    {groups.length === 0 ? (
+      <div className="empty-state-container">
+        <div className="empty-icon">📂</div>
+        <p className="empty-msg">Vous n’appartenez à aucun groupe pour le moment.</p>
+        <button className="btn-primary-gold" onClick={() => navigate('/groups/create')}>
+          Créer mon premier groupe
+        </button>
+      </div>
+    ) : (
+      <div className="groups-grid">
+        {groups.map((group) => (
+          <div 
+            key={group.id} 
+            className={`group-card-premium ${group.role === 'INITIATOR' ? 'is-owner' : ''}`}
+            onClick={() => navigate(`/group/${group.id}`)}
+          >
+            <div className="card-accent-line"></div>
+            
+            <div className="card-main-content">
+              <div className="card-top-info">
                 <h3 className="group-name">{group.group_name}</h3>
-
-                <p className="group-meta">
-                  Rôle : <strong>{group.role}</strong>
-                </p>
-
-                <p className="group-meta">
-                  Membres : {group.members_count}
-                </p>
-
-                <p
-                  className={`group-status ${
-                    group.is_active ? "active" : "pending"
-                  }`}
-                >
-                  {group.is_active ? "Actif" : "En validation"}
-                </p>
+                <span className={`status-pill-small ${group.is_active ? "active" : "pending"}`}>
+                  {group.is_active ? "Actif" : "En attente"}
+                </span>
               </div>
 
-              <button
-                className="view-btn"
-                onClick={() => navigate(`/group/${group.id}`)}
-              >
-                Voir
-              </button>
+              <div className="card-middle-info">
+                <div className="info-item">
+                  <span className="info-label">Rôle</span>
+                  <span className={`role-badge ${group.role.toLowerCase()}`}>
+                    {group.role === 'INITIATOR' ? '👑 Initiateur' : '🛡️ Validateur'}
+                  </span>
+                </div>
+                {/* <div className="info-item">
+                  <span className="info-label">Membres</span>
+                  <span className="info-value">{group.members_count} / 5</span>
+                </div> */}
+              </div>
+
+              <div className="card-footer">
+                <span className="view-link">Accéder au tableau de bord →</span>
+              </div>
             </div>
-          ))}
-          
-        </div>
-      )}
-    </div>
-  );
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
 }
 
 export default MesGroupesPage;

@@ -16,9 +16,15 @@ from groups.serializers import AddValidatorSerializer
 from django.contrib.auth import get_user_model
 from core.models import User
 from groups.services.operation_validation import respond_to_add_validator_request
-from groups.serializers import RespondAddValidatorSerializer
+from groups.serializers import RespondAddValidatorSerializer, RemoveValidatorSerializer
+from groups.services.operation_service import request_remove_validator
 from groups.models import Operation
-
+from groups.services.operation_validation import respond_to_remove_validator_request
+from groups.models import OperationType
+from groups.services.operation_validation import respond_to_delete_group_request
+from groups.services.operation_service import request_delete_group
+from groups.models import OperationStatus, ValidationStatus
+from groups.services.operation_service import cancel_operation
 
 
 class CreateGroupRequestAPIView(APIView):
@@ -135,7 +141,42 @@ class AddValidatorAPIView(APIView):
         )
     print("SERIALIZER CLASS:", AddValidatorSerializer)
 
-class RespondAddValidatorAPIView(APIView):
+class RemoveValidatorAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, group_id):
+
+        serializer = RemoveValidatorSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            group = ValidationGroup.objects.get(id=group_id)
+        except ValidationGroup.DoesNotExist:
+            return Response(
+                {"detail": "Groupe introuvable"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        validator_phone = serializer.validated_data["validator_phone_number"]
+
+        success, message = request_remove_validator(
+            group=group,
+            initiator_phone=request.user.phone_number,
+            validator_phone=validator_phone,
+        )
+
+        if not success:
+            return Response(
+                {"detail": message},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(
+            {"detail": message},
+            status=status.HTTP_200_OK
+        )
+
+class RespondOperationAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -152,12 +193,128 @@ class RespondAddValidatorAPIView(APIView):
                 status=404
             )
 
-        success, message = respond_to_add_validator_request(
-            operation=operation,
-            validator_phone=request.user.phone_number,
-            accept=serializer.validated_data["accept"],
-            rejection_reason=serializer.validated_data.get("rejection_reason")
-        )
+        operation_type = operation.operation_type
+
+        if operation_type == OperationType.ADD_VALIDATOR:
+            success, message = respond_to_add_validator_request(
+                operation=operation,
+                validator_phone=request.user.phone_number,
+                accept=serializer.validated_data["accept"],
+                rejection_reason=serializer.validated_data.get("rejection_reason")
+            )
+
+        elif operation_type == OperationType.REMOVE_VALIDATOR:
+            success, message = respond_to_remove_validator_request(
+                operation=operation,
+                validator_phone=request.user.phone_number,
+                accept=serializer.validated_data["accept"],
+                rejection_reason=serializer.validated_data.get("rejection_reason")
+            )
+
+        elif operation_type == OperationType.DELETE_GROUP:
+            success, message = respond_to_delete_group_request(
+                operation=operation,
+                validator_phone=request.user.phone_number,
+                accept=serializer.validated_data["accept"],
+                rejection_reason=serializer.validated_data.get("rejection_reason")
+            )
+
+
+        else:
+            return Response(
+                {"message": "Opération invalide"},
+                status=400
+            )
 
         status_code = 200 if success else 400
         return Response({"message": message}, status=status_code)
+
+class RequestDeleteGroupAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        group_id = request.data.get("group_id")
+
+        if not group_id:
+            return Response(
+                {"message": "group_id requis"},
+                status=400
+            )
+
+        try:
+            group = ValidationGroup.objects.get(
+                id=group_id,
+                is_active=True
+            )
+        except ValidationGroup.DoesNotExist:
+            return Response(
+                {"message": "Groupe introuvable ou inactif"},
+                status=404
+            )
+
+        success, message = request_delete_group(
+            group=group,
+            initiator_phone=request.user.phone_number
+        )
+
+        return Response(
+            {"message": message},
+            status=200 if success else 400
+        )
+
+class MyInitiatedOperationsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        phone = request.user.phone_number
+
+        operations = Operation.objects.filter(
+            initiator_phone_number=phone
+        ).select_related("group").order_by("-created_at")
+
+        data = []
+
+        for op in operations:
+            validations = op.validations.all()
+
+            total = validations.count()
+            approved = validations.filter(
+                status=ValidationStatus.ACCEPTED
+            ).count()
+
+            data.append({
+                "reference": op.reference,
+                "group_name": op.group.group_name,
+                "operation_type": op.operation_type,
+                "status": op.status,
+                "created_at": op.created_at,
+                "expires_at": op.expires_at,
+                "approved_count": approved,
+                "total_validators": total,
+            })
+
+        return Response(data)
+    
+class CancelOperationAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        reference = request.data.get("reference")
+
+        try:
+            operation = Operation.objects.get(reference=reference)
+        except Operation.DoesNotExist:
+            return Response(
+                {"detail": "Opération introuvable"},
+                status=404
+            )
+
+        success, message = cancel_operation(
+            operation,
+            request.user.phone_number
+        )
+
+        if not success:
+            return Response({"detail": message}, status=400)
+
+        return Response({"detail": message})

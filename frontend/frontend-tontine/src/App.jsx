@@ -9,6 +9,7 @@ import Layout from "./components/Layout";
 import NotificationsInboxPage from "./pages/NotificationsInboxPage";
 import MesGroupesPage from "./pages/MyGroupsPage";
 import GroupDetailPage from "./pages/GroupeDetailPage";
+import InitiatedOperationsPage from "./pages/InitiatedOperationsPage";
 
 
 function App() {
@@ -89,7 +90,16 @@ function App() {
             }
           />
 
-
+          <Route
+            path="/operations/initiated"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <InitiatedOperationsPage />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
 
           {/* Route 404 si nécessaire */}
           <Route

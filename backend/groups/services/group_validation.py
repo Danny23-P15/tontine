@@ -149,3 +149,4 @@ def respond_to_group_deletion(operation: Operation):
         source=operation,
         event=OperationEvent.GROUP_DELETED
     )
+

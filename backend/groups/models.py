@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+# from django.db import Q
 
 
 class GroupRole(models.TextChoices):
@@ -75,12 +76,14 @@ class GroupMembership(models.Model):
             # Un numéro ne peut apparaître qu’une seule fois par groupe
             models.UniqueConstraint(
                 fields=["group", "phone_number"],
+                condition=models.Q(left_at__isnull=True),
                 name="unique_member_per_group"
             ),
 
             # Un CIN ne peut apparaître qu’une seule fois par groupe
             models.UniqueConstraint(
                 fields=["group", "cin"],
+                condition=models.Q(left_at__isnull=True),
                 name="unique_cin_per_group"
             ),
         ]
@@ -206,7 +209,13 @@ class Operation(models.Model):
         self.completed_at = timezone.now()
         self.save(update_fields=["status", "completed_at"])
 
+    def mark_rejected(self):
+        if self.status == OperationStatus.REJECTED:
+            return
 
+        self.status = OperationStatus.REJECTED
+        self.resolved_at = timezone.now()
+        self.save(update_fields=["status", "resolved_at"])
 
     def __str__(self):
         return f"{self.operation_type} - {self.reference}"

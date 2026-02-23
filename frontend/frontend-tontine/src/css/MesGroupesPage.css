@@ -1,80 +1,158 @@
-.groups-page {
-  padding: 24px;
+:root {
+  --gold: #FFD700;
+  --black-deep: #0D0D0D;
+  --black-card: #1A1A1A;
+  --border-color: #2D2D2D;
+  --text-dim: #999;
+}
+
+.groups-container {
+  padding: 40px;
+  background-color: var(--black-deep);
+  min-height: 100vh;
+  color: white;
+}
+
+.groups-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 40px;
 }
 
 .page-title {
-  font-size: 22px;
+  font-size: 28px;
+  color: var(--gold);
+  margin-bottom: 5px;
+}
+
+.sub-title {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* Grille de cartes */
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 25px;
+}
+
+/* Carte Premium */
+.group-card-premium {
+  background: var(--black-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+}
+
+.group-card-premium:hover {
+  transform: translateY(-8px);
+  border-color: var(--gold);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Ligne d'accentuation sur le côté */
+.card-accent-line {
+  width: 6px;
+  background: #444; /* Gris par défaut */
+  transition: background 0.3s;
+}
+
+.group-card-premium.is-owner .card-accent-line {
+  background: var(--gold); /* Jaune si vous êtes l'initiateur */
+}
+
+.card-main-content {
+  padding: 25px;
+  flex-grow: 1;
+}
+
+.card-top-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 20px;
 }
 
-.page-msg {
-  padding: 20px;
-  text-align: center;
-}
-
-.page-msg.error {
-  color: #c0392b;
-}
-
-.groups-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.group-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-radius: 8px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-}
-
-.group-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .group-name {
-  margin: 0;
   font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.5px;
 }
 
-.group-meta {
-  font-size: 14px;
-  color: #555;
+/* Badges Statut */
+.status-pill-small {
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 800;
+}
+.status-pill-small.active { background: rgba(0, 255, 100, 0.1); color: #00ff64; }
+.status-pill-small.pending { background: rgba(255, 215, 0, 0.1); color: var(--gold); }
+
+/* Infos du milieu */
+.card-middle-info {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 25px;
 }
 
-.group-status {
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.role-badge {
   font-size: 13px;
-  font-weight: bold;
+  font-weight: 600;
+}
+.role-badge.initiator { color: var(--gold); }
+
+/* Footer de carte */
+.card-footer {
+  border-top: 1px solid var(--border-color);
+  padding-top: 15px;
 }
 
-.group-status.active {
-  color: #16a34a;
+.view-link {
+  font-size: 13px;
+  color: var(--gold);
+  font-weight: 600;
+  opacity: 0.7;
+  transition: opacity 0.3s;
 }
 
-.group-status.pending {
-  color: #d97706;
+.group-card-premium:hover .view-link {
+  opacity: 1;
 }
 
-.view-btn {
-  padding: 8px 14px;
-  border-radius: 6px;
+/* Boutons */
+.btn-create-shortcut {
+  background: var(--gold);
+  color: black;
   border: none;
-  background: #2563eb;
-  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 700;
   cursor: pointer;
+  transition: 0.2s;
 }
 
-.view-btn:hover {
-  background: #1d4ed8;
-}
-
-.empty-msg {
-  text-align: center;
-  color: #777;
+.btn-create-shortcut:hover {
+  filter: brightness(1.1);
+  transform: scale(1.05);
 }

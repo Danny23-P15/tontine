@@ -48,6 +48,7 @@ class Notification(models.Model):
 
     # 🔹 Action utilisateur (remplace PendingOperation)
     action_required = models.BooleanField(default=False)
+    
 
     action_type = models.CharField(
         max_length=40,

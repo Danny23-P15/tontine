@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { getGroupDetail } from "../services/groups";
 import "../css/GroupDetailPage.css";
 import axios from "axios";
+import { requestRemoveValidator } from "../services/groups";
+import api from "../services/api";
 
 function GroupDetailPage() {
   const { groupId } = useParams();
+  const navigate = useNavigate();
   const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -50,7 +53,7 @@ function GroupDetailPage() {
       try {
         const response = await fetch("http://127.0.0.1:8000/api/users/", {
           headers: {
-            "Authorization": `Bearer ${token}`,
+            "Authorization": `Bearer ${token}`, 
             "Content-Type": "application/json",
           },
         });
@@ -148,6 +151,32 @@ const handleAddValidator = async () => {
   }
 };
 
+const handleRemoveValidator = async (phone) => {
+  if (!window.confirm("Confirmer la demande de suppression ?")) return;
+
+  try {
+    const response = await requestRemoveValidator(group.id, phone);
+    alert("✅ Demande envoyée avec succès");
+  } catch (e) {
+    console.error(e);
+    alert("❌ Erreur lors de la demande");
+  }
+};
+
+const handleDeleteGroupRequest = async () => {
+  try {
+    await api.post(`http://127.0.0.1:8000/api/groups/delete/request/`, {
+      group_id: group.id
+    });
+
+    alert("Demande de suppression envoyée.");
+    const updatedGroup = await getGroupDetail(groupId);
+    setGroup(updatedGroup);
+  } catch (error) {
+    alert(error.response?.data?.detail || "Erreur lors de la suppression");
+  }
+};
+
   if (loading) {
     return <div className="page-msg">Chargement du groupe...</div>;
   }
@@ -156,143 +185,93 @@ const handleAddValidator = async () => {
     return <div className="page-msg error">{error}</div>;
   }
 
-  return (
-    <div className="group-detail-page">
-      <h2 className="page-title">{group.group_name}</h2>
-
-      <div className="group-summary">
-        <p>
-          <strong>Statut :</strong>{" "}
-          <span className={group.is_active ? "active" : "pending"}>
-            {group.is_active ? "Actif" : "En validation"}
-          </span>
-        </p>
-
-        <p>
-          <strong>Quorum :</strong> {group.quorum}
-        </p>
-
-        <p>
-          <strong>Mon rôle :</strong>{" "}
-          <span className="my-role">{group.me?.role}</span>
-        </p>
+return (
+  <div className="group-detail-container">
+    <header className="group-detail-header">
+      <div>
+        <h2 className="group-name">{group.group_name}</h2>
+        <p className="creation-date">Créé le {group.created_at ? new Date(group.created_at).toLocaleDateString("fr-FR") : "N/A"}</p>
       </div>
-
-      <h3 className="section-title">Membres du groupe</h3>
-
-      <div className="members-list">
-        {group.members.map((member) => (
-          <div key={member.phone_number} className="member-card">
-            <div className="member-info">
-              <div className="member-name">{member.full_name}</div>
-              <div className="member-meta">
-                {member.phone_number} | {member.cin}
-              </div>
-            </div>
-
-            <div className={`member-role ${member.role.toLowerCase()}`}>
-              {member.role}
-            </div>
-          </div>
-        ))}
+      <div className={`status-pill ${group.is_active ? "active" : "pending"}`}>
+        {group.is_active ? "🟢 Groupe Actif" : "🟡 En cours de validation"}
       </div>
+    </header>
 
-      {/* 🔒 Actions pour l'initiateur */}
-      {group.me?.role === "INITIATOR" && (
-        <div className="initiator-actions">
-          <button 
-            className="action-btn"
-            onClick={() => {
-              setShowValidator(true);
-              // Recharger les utilisateurs au moment d'ouvrir le select
-              if (allUsers.length === 0) {
-                fetchUsers();
-              }
-            }}
-          >
-            + Ajouter un validateur        
-          </button>
-          
-          {showValidator && (
-            <div className="add-validator-box">
-              <h4>Choisir un validateur</h4>
-              
-              {loadingUsers ? (
-                <p>Chargement des utilisateurs...</p>
-              ) : error && !allUsers.length ? (
-                <p className="error-message">{error}</p>
-              ) : (
-                <>
-                <select
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                >
-                  <option value="">-- Sélectionner un utilisateur --</option>
+    <div className="group-content-grid">
+      {/* Colonne de gauche : Infos clés */}
+      <aside className="group-stats">
+        <div className="stat-card">
+          <span className="stat-label">Seuil de validation (Quorum)</span>
+          <span className="stat-value">{group.quorum} membres</span>
+        </div>
+        <div className="stat-card gold-border">
+          <span className="stat-label">Votre Rôle</span>
+          <span className="stat-value highlight">{group.me?.role}</span>
+        </div>
+        
+        {group.me?.role === "INITIATOR" && (
+           <button className="delete-group-link" onClick={handleDeleteGroupRequest}>
+             Supprimer le groupe définitivement
+           </button>
+        )}
+      </aside>
 
-                  {allUsers
-                    .filter(user => {
-                      const userIdentifier = user.phone_number || user.phone || user.id;
-                      const isAlreadyMember = group.members.some(
-                        m => m.phone_number === userIdentifier || m.id === user.id
-                      );
-                      const isSelf = userIdentifier === group.me?.phone_number || 
-                                    user.id === group.me?.id;
-                      return !isAlreadyMember && !isSelf;
-                    })
-                    .map(user => {
-                      // Utiliser l'ID comme valeur si le phone_number est vide
-                      const userValue = user.phone_number || user.phone || user.id;
-                      const userDisplay = user.full_name || user.username || user.email;
-                      const userPhone = user.phone_number || user.phone || user.telephone || 'pas de téléphone';
-                      
-                      return (
-                        <option key={user.id || userValue} value={userValue}>
-                          {userDisplay} ({userPhone})
-                        </option>
-                      );
-                    })}
-                </select>
-
-                  {allUsers.filter(user => {
-                    const isAlreadyMember = group.members.some(
-                      m => m.phone_number === user.phone_number
-                    );
-                    const isSelf = user.phone_number === group.me?.phone_number;
-                    return !isAlreadyMember && !isSelf;
-                  }).length === 0 && (
-                    <p className="info-message">
-                      Aucun utilisateur disponible à ajouter
-                    </p>
-                  )}
-
-                  <div className="validator-actions">
-                    <button 
-                      onClick={handleAddValidator}
-                      disabled={!selectedUser}
-                    >
-                      Envoyer la demande
-                    </button>
-
-                    <button 
-                      className="cancel-btn"
-                      onClick={() => {
-                        setShowValidator(false);
-                        setSelectedUser("");
-                      }}
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+      {/* Colonne de droite : Liste des membres */}
+      <main className="members-section">
+        <div className="section-header">
+          <h3>Membres du groupe <span className="member-count">({group.members.length})</span></h3>
+          {group.me?.role === "INITIATOR" && group.members?.length < 5 && (
+            <button className="btn-add-mini" onClick={() => setShowValidator(true)}>+ Ajouter</button>
           )}
         </div>
-      )}
+
+        <div className="members-stack">
+          {group.members.map((member) => (
+            <div key={member.phone_number} className="member-item">
+              <div className="member-avatar-mini">{member.full_name?.charAt(0)?.toUpperCase()}</div>
+              <div className="member-body">
+                <span className="member-fullname">{member.full_name}</span>
+                <span className="member-sub">{member.phone_number} | {member.cin}</span>
+              </div>
+              <div className="member-tag-wrapper">
+                <span className={`role-tag ${member.role.toLowerCase()}`}>{member.role}</span>
+                {member.role === "VALIDATOR" && group.me?.role === "INITIATOR" && (
+                  <button className="btn-remove-member" onClick={() => handleRemoveValidator(member.phone_number)}>✕</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Modal / Overlay d'ajout de validateur */}
+        {showValidator && (
+          <div className="validator-overlay">
+            <div className="validator-modal">
+              <h4>Ajouter un Validateur</h4>
+              <p>Sélectionnez un membre pour rejoindre votre cercle.</p>
+              
+              <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)}>
+                <option value="">-- Choisir un utilisateur --</option>
+                {allUsers.map(user => (
+                  <option key={user.id} value={user.phone_number || user.id}>
+                    {user.full_name || "Sans nom"} - {user.phone_number} {user.cin ? `(${user.cin})` : ""}
+                  </option>
+                ))}
+              </select>
+
+              <div className="modal-actions">
+                <button className="btn-confirm" onClick={handleAddValidator} disabled={!selectedUser}>Inviter</button>
+                <button className="btn-cancel" onClick={() => setShowValidator(false)}>Fermer</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
-  );
+  </div>
+);
 }
 
 export default GroupDetailPage;
 
-//axios
+//Membres du groupe 

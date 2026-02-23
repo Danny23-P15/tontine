@@ -41,28 +41,56 @@ export default function NotificationsPage() {
     loadNotifications();
   };
 
+
 const handleRespond = async (notification, accept) => {
   try {
+
+    if (!notification.action) {
+      throw new Error("Aucune action définie pour cette notification");
+    }
+
     const { endpoint, method, payload } = notification.action;
 
-    await fetch(`http://127.0.0.1:8000${endpoint}`, {
-      method: method || "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
-        ...payload,
-        accept: accept,
-      }),
+    console.log("Notification =", notification);
+    console.log("Payload envoyé =", {
+      ...payload,
+      accept: accept,
     });
 
-    alert(accept ? "Action acceptée" : "Action refusée");
-    loadNotifications();
+    const response = await fetch(
+      `http://127.0.0.1:8000${endpoint}`,
+      {
+        method: method || "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify({
+          ...payload,
+          accept: accept,
+        }),
+      }
+    );
+
+    const data = await response.json();
+    console.log("Response =", data);
+
+    if (!response.ok) {
+      throw new Error(data.message || "Erreur backend");
+    }
+
+    setNotifications(prev =>
+      prev.filter(n => n.id !== notification.id)
+    );
+
+    alert(accept ? "✅ Action acceptée" : "❌ Action refusée");
+
   } catch (e) {
-    alert("Erreur lors de la réponse");
+    console.error(e);
+    alert("❌ Erreur lors de la réponse");
   }
 };
+
 
 
   if (loading) {
@@ -87,10 +115,7 @@ const handleRespond = async (notification, accept) => {
             {refreshing ? "🔄" : "🔄"} 
             {refreshing ? "Actualisation..." : "Actualiser"}
           </button>
-          <button className="logout-button" onClick={handleLogout}>
-            <span>🚪</span>
-            Déconnexion
-          </button>
+
         </div>
       </div>
 

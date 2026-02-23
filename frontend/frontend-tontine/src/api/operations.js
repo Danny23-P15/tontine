@@ -1,28 +1,20 @@
-import { apiFetch } from "./client";
+import axios from "axios";
 
-export function getPendingOperations() {
-  return apiFetch(`/operations/pending/`);
-}
+const API_URL = "http://localhost:8000/api";
 
-export async function respondToOperation({
-  validation_reference,
-  accept,
-  rejection_reason = null,
-}) {
-  return apiFetch("/operations/respond/", {
-    method: "POST",
-    body: JSON.stringify({
-      validation_reference,
-      accept,
-      rejection_reason,
-    }),
-  });
-}
+export const respondToOperation = async ({ operationId, decision }) => {
+  const response = await axios.post(
+    `${API_URL}/operations/respond/`,
+    {
+      operation_id: operationId,
+      decision: decision,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("access")}`,
+      },
+    }
+  );
 
-
-// export function respondToOperation(payload) {
-//   return apiFetch("/operations/respond/", {
-//     method: "POST",
-//     body: JSON.stringify(payload),
-//   });
-// }
+  return response.data;
+};

@@ -10,7 +10,10 @@ def get_user_group_stats(phone_number: str) -> dict:
     )
 
     initiator_count = memberships.filter(
-        role=GroupRole.INITIATOR
+        role=GroupRole.INITIATOR,
+        left_at__isnull=True,
+        group__is_active=True,
+        group__deleted_at__isnull=True
     ).count()
 
     validator_count = memberships.filter(
@@ -83,7 +86,10 @@ def can_add_validator(
         return False, "Vous ne pouvez pas vous ajouter vous-même"
 
     # CIN déjà utilisé dans ce groupe
-    if group.memberships.filter(cin=validator_cin).exists():
+    if group.memberships.filter(
+        cin=validator_cin,
+        left_at__isnull=True
+    ).exists():
         return False, "Ce validateur (CIN) est déjà dans le groupe"
 
     stats = get_user_group_stats(validator_phone)

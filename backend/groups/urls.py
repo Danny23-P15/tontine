@@ -4,11 +4,15 @@ from groups.views import *
 
 urlpatterns = [
     path("groups/create-request/", CreateGroupRequestAPIView.as_view()),
-    path("groups/creation/respond", RespondGroupCreationAPIView.as_view()),
+    path("groups/creation/respond/", RespondGroupCreationAPIView.as_view()),
     path("groups/my-groups/", MyGroupsAPIView.as_view()),
     path("groups/<int:group_id>/", GroupDetailAPIView.as_view()), 
     path("groups/<int:group_id>/validator/add/", AddValidatorAPIView.as_view()),
-    path("operations/add-validator/respond/", RespondAddValidatorAPIView.as_view()),
-    path("operations/respond/", RespondAddValidatorAPIView.as_view()),
+    # path("operations/add-validator/respond/", RespondAddValidatorAPIView.as_view()),
+    path("operations/respond/", RespondOperationAPIView.as_view()),
+    path("groups/<int:group_id>/remove-validator/",RemoveValidatorAPIView.as_view(),name="remove-validator"),
+    path("groups/delete/request/",RequestDeleteGroupAPIView.as_view()),
+    path("operations/initiated/", MyInitiatedOperationsAPIView.as_view()),
+    path("operations/cancel/", CancelOperationAPIView.as_view()),
 
 ]

@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
 from groups.services.group_rules import can_remove_validator
-from groups.models import Operation, OperationType
+from groups.models import Operation, OperationType, OperationStatus, GroupMembership, GroupRole, OperationValidation, ValidationStatus
 from django.utils import timezone
 import uuid
 from notifications.services.operation_notifications import notify_operation_status
@@ -25,7 +25,7 @@ from groups.models import (
 
 )
 from groups.utils import generate_reference  # on va la créer juste après
-from groups.services.group_rules import can_add_validator
+from groups.services.group_rules import can_add_validator, can_remove_validator
 from groups.services.group_rules import can_delete_group
 
 import uuid
@@ -110,43 +110,36 @@ def request_add_validator(
     )
     if not allowed:
         return False, reason
-    
+
     with transaction.atomic():
 
-        temp_add = TemporaryAddValidator.objects.create(
+        operation = Operation.objects.create(
             group=group,
-            # initiator_phone=initiator_phone,
-            # validator_phone=validator_phone,
+            initiator_phone_number=initiator_phone,
+            operation_type=OperationType.ADD_VALIDATOR,
+            reference=f"OP-ADD-{uuid.uuid4().hex[:8]}",
+            payload={
+                "validator_phone_number": validator_phone,
+                "cin": validator_cin
+            },
+            status=OperationStatus.PENDING,
             expires_at=timezone.now() + timedelta(hours=48)
         )
 
-    operation = Operation.objects.create(
-        group=group,
-        initiator_phone_number=initiator_phone,
-        operation_type=OperationType.ADD_VALIDATOR,
-        reference=f"OP-ADD-{uuid.uuid4().hex[:8]}",
-        payload={
-            "validator_phone_number": validator_phone,
-            "cin": validator_cin
-        },
-        status=OperationStatus.PENDING,
-        expires_at=timezone.now() + timezone.timedelta(hours=48)
-    )
-
-    validators = group.memberships.filter(
-        role=GroupRole.VALIDATOR,
-        left_at__isnull=True
-    )
-
-    OperationValidation.objects.bulk_create([
-        OperationValidation(
-            operation=operation,
-            validator_phone_number=v.phone_number,
-            validation_reference=f"VAL-{uuid.uuid4().hex[:8]}",
-            status=OperationStatus.PENDING
+        validators = group.memberships.filter(
+            role=GroupRole.VALIDATOR,
+            left_at__isnull=True
         )
-        for v in validators
-    ])
+
+        OperationValidation.objects.bulk_create([
+            OperationValidation(
+                operation=operation,
+                validator_phone_number=v.phone_number,
+                validation_reference=f"VAL-{uuid.uuid4().hex[:8]}",
+                status=ValidationStatus.PENDING
+            )
+            for v in validators
+        ])
 
     # 🔔 NOTIFICATION DES VALIDATEURS ACTUELS
     notify_operation_status(
@@ -156,6 +149,68 @@ def request_add_validator(
     )
 
     return True, "Demande d’ajout de validateur envoyée"
+
+
+def request_remove_validator(
+    *,
+    group: ValidationGroup,
+    initiator_phone: str,
+    validator_phone: str,
+) -> tuple[bool, str | None]:
+
+    # 🔒 Seul l’initiateur
+    if group.initiator_phone_number != initiator_phone:
+        return False, "Seul l’initiateur peut supprimer un validateur"
+
+    if not group.is_active:
+        return False, "Le groupe n’est pas actif"
+
+    # ✅ Règle métier dédiée
+    allowed, reason = can_remove_validator(
+        group=group,
+        # initiator_phone=initiator_phone,
+        validator_phone_to_remove=validator_phone,
+    )
+    if not allowed:
+        return False, reason
+
+    with transaction.atomic():
+
+        operation = Operation.objects.create(
+            group=group,
+            initiator_phone_number=initiator_phone,
+            operation_type=OperationType.REMOVE_VALIDATOR,
+            reference=f"OP-REM-{uuid.uuid4().hex[:8]}",
+            payload={
+                "validator_phone_number": validator_phone,
+            },
+            status=OperationStatus.PENDING,
+            expires_at=timezone.now() + timezone.timedelta(hours=48)
+        )
+
+        validators = group.memberships.filter(
+            role=GroupRole.VALIDATOR,
+            left_at__isnull=True
+        )
+
+        OperationValidation.objects.bulk_create([
+            OperationValidation(
+                operation=operation,
+                validator_phone_number=v.phone_number,
+                validation_reference=f"VAL-{uuid.uuid4().hex[:8]}",
+                status=OperationStatus.PENDING
+            )
+            for v in validators
+        ])
+
+        # 🔔 Notification
+        notify_operation_status(
+            source=operation,
+            event=OperationEvent.REMOVE_VALIDATOR_REQUESTED,
+            actor_phone=initiator_phone
+        )
+
+    return True, "Demande de suppression de validateur envoyée"
 
 
 def create_remove_validator_operation(
@@ -235,7 +290,7 @@ def create_delete_group_operation(
     # créer les validations (TOUS les validateurs)
     validators = GroupMembership.objects.filter(
         group=group,
-        role="VALIDATOR",
+        role=GroupRole.VALIDATOR,
         left_at__isnull=True
     )
 
@@ -246,3 +301,84 @@ def create_delete_group_operation(
         )
 
     return True, operation
+
+
+def request_delete_group(*, group: ValidationGroup, initiator_phone: str):
+
+    # 1️⃣ Vérifier initiateur
+    if group.initiator_phone_number != initiator_phone:
+        return False, "Seul l’initiateur peut supprimer le groupe"
+
+    # 2️⃣ Vérifier groupe actif
+    if not group.is_active:
+        return False, "Le groupe est déjà inactif"
+
+    # 3️⃣ Empêcher si opération en cours
+    pending_exists = Operation.objects.filter(
+        group=group,
+        status=OperationStatus.PENDING
+    ).exists()
+
+    if pending_exists:
+        return False, "Une opération est déjà en cours sur ce groupe"
+
+    # 4️⃣ Créer l’opération
+    operation = Operation.objects.create(
+        group=group,
+        operation_type=OperationType.DELETE_GROUP,
+        initiator_phone_number=initiator_phone,
+        payload={},
+        status=OperationStatus.PENDING,
+        expires_at=timezone.now() + timedelta(hours=24)
+    )
+
+    # 5️⃣ Créer validations
+    validators = GroupMembership.objects.filter(
+        group=group,
+        role=GroupRole.VALIDATOR,
+        left_at__isnull=True
+    )
+
+    for v in validators:
+        OperationValidation.objects.create(
+            operation=operation,
+            validator_phone_number=v.phone_number
+        )
+
+    # 6️⃣ Notifier
+    notify_operation_status(
+        source=operation,
+        event=OperationEvent.DELETE_GROUP_REQUESTED
+    )
+
+    return True, "Demande de suppression envoyée"
+
+
+def cancel_operation(operation: Operation, user_phone: str) -> tuple[bool, str | None]:
+
+    if operation.initiator_phone_number != user_phone:
+        return False, "Vous ne pouvez pas annuler cette opération"
+
+    if operation.status != OperationStatus.PENDING:
+        return False, "Seules les opérations en attente peuvent être annulées"
+
+    if operation.expires_at and operation.expires_at < timezone.now():
+        return False, "Cette opération est déjà expirée"
+
+    with transaction.atomic():
+
+        operation.status = OperationStatus.CANCELLED
+        operation.resolved_at = timezone.now()
+        operation.save(update_fields=["status", "resolved_at"])
+
+        operation.validations.update(
+            status=OperationStatus.CANCELLED
+        )
+
+        # notify_operation_status(
+        #     source=operation,
+        #     event=OperationEvent.OPERATION_CANCELLED,
+        #     actor_phone=user_phone
+        # )
+
+    return True, "Opération annulée avec succès"
