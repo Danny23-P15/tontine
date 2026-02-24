@@ -139,7 +139,8 @@ def can_remove_validator(
     remaining_validators = active_validators_count - 1
 
     # vérifier la survie du groupe (RÈGLE MÉTIER)
-    if remaining_validators <= group.quorum:
+    # Permettre la suppression si remaining_validators >= quorum
+    if remaining_validators < group.quorum:
         return (
             False,
             "Impossible de supprimer ce validateur : "

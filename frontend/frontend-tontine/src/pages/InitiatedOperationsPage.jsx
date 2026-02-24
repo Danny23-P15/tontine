@@ -41,9 +41,6 @@ export default function InitiatedOperationsPage() {
 
   const getFilteredOps = () => {
     if (filter === "all") return ops;
-    if (filter === "approved") {
-      return ops.filter(op => op.status === "APPROVED" || op.status === "COMPLETED");
-    }
     return ops.filter(op => op.status === filter.toUpperCase());
   };
 
@@ -92,7 +89,7 @@ export default function InitiatedOperationsPage() {
         className={`filter-btn ${filter === "approved" ? "active" : ""}`}
         onClick={() => setFilter("approved")}
       >
-        Approuvé ({ops.filter(op => op.status === "APPROVED" || op.status === "COMPLETED").length})
+        Approuvé ({ops.filter(op => op.status === "APPROVED").length})
       </button>
       <button 
         className={`filter-btn ${filter === "rejected" ? "active" : ""}`}

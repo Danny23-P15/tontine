@@ -1,7 +1,8 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { useEffect, useState } from "react";
-import { getInboxNotifications } from "../services/notifications";
+import logo from '../assets/logovalideo.png';
+// import '../css/Sidebar.css';
+
 // Importation des icônes
 import { 
   Hourglass, 
@@ -17,40 +18,18 @@ import "../css/Sidebar.css";
 function Sidebar() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
-  const [inboxCount, setInboxCount] = useState(0);
 
   const handleLogout = () => {
     logout();
     navigate("/login", { replace: true });
   };
 
-  useEffect(() => {
-    let mounted = true;
-
-    const loadCount = async () => {
-      try {
-        const data = await getInboxNotifications();
-        if (!mounted) return;
-        const count = (typeof data.count === "number") ? data.count : (Array.isArray(data.results) ? data.results.length : 0);
-        setInboxCount(count);
-      } catch (e) {
-        console.error("Erreur chargement inbox count", e);
-      }
-    };
-
-    loadCount();
-    const interval = setInterval(loadCount, 30000);
-    return () => { mounted = false; clearInterval(interval); };
-  }, []);
-
   return (
     <aside className="sidebar">
       <div className="sidebar-top">
-        <div className="logo-container">
-          <div className="logo-icon-wrapper">
-            <ShieldCheck size={20} color="#000" strokeWidth={3} />
-          </div>
-          <h2 className="logo-text"><img src="/src/assets/logo_yellowed.png" alt="Valideo"/></h2>
+        <div className="logo">
+            {/* <ShieldCheck size={20} color="#000" strokeWidth={3} /> */}
+                <img src={logo} alt="Logo"  style={{width: "180px", height: "126px"}}/>
         </div>
 
         {/* <div className="user-header">
@@ -83,7 +62,6 @@ function Sidebar() {
           <NavLink to="/notifications/inbox" className="nav-link">
             <Bell size={18} className="icon" /> 
             <span className="link-text">Notifications</span>
-            {inboxCount > 0 && <span className="inbox-badge">|{inboxCount}|</span>}
           </NavLink>
         </nav>
       </div>

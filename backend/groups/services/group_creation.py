@@ -39,8 +39,8 @@ def create_group_request(
     # =========================
     # ✅ Vérification quorum vs validateurs
     # =========================
-    if quorum >= len(validators):
-        return False, "Quorum doit être strictement inférieur au nombre de validateur", None
+    if quorum > len(validators):
+        return False, "Quorum doit être inférieur ou égal au nombre de validateurs", None
 
     # =========================
     # 👥 Validation validateurs

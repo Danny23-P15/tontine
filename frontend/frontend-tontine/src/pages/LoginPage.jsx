@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/LoginPage.css";
+import logo from '../assets/logovalideo.png'
 
 export default function LoginPage() {
   const [phone, setPhone] = useState("");
@@ -30,7 +31,10 @@ export default function LoginPage() {
 
   return (
     <div className="login-container">
-      <h2 className="login-title">Connexion</h2>
+      <div className="logo">
+        <h2 className="login-title">Connexion</h2>
+      </div>
+      <img src={logo} alt="Logo" />
 
       <input
         className="login-input"
