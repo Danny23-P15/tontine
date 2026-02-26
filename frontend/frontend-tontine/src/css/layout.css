@@ -1,7 +1,7 @@
 .app-layout {
   display: flex;
   height: 100vh;
-  background: black;
+  background: #f5f6f8;
 }
 
 .app-content {

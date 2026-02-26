@@ -32,9 +32,9 @@ export default function LoginPage() {
   return (
     <div className="login-container">
       <div className="logo">
+      <img src={logo} alt="Logo" style={{width: "230px", height: "100px"}}/>
         <h2 className="login-title">Connexion</h2>
       </div>
-      <img src={logo} alt="Logo" />
 
       <input
         className="login-input"

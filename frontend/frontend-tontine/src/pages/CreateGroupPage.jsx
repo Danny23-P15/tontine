@@ -213,7 +213,7 @@ return (
         </label>
         <input
           className="form-input"
-          placeholder="Ex: Fond de solidarité..."
+          placeholder="Nom du groupe"
           value={groupName}
           onChange={(e) => setGroupName(e.target.value)}
           required

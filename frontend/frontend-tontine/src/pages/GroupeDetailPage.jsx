@@ -220,7 +220,7 @@ return (
       <main className="members-section">
         <div className="section-header">
           <h3>Membres du groupe <span className="member-count">({group.members.length})</span></h3>
-          {group.me?.role === "INITIATOR" && group.members?.length < 5 && (
+          {group.me?.role === "INITIATOR" && group.members?.filter(m => m.role === "VALIDATOR").length < 5 && (
             <button className="btn-add-mini" onClick={() => setShowValidator(true)}>+ Ajouter</button>
           )}
         </div>
@@ -231,7 +231,8 @@ return (
               <div className="member-avatar-mini">{member.full_name?.charAt(0)?.toUpperCase()}</div>
               <div className="member-body">
                 <span className="member-fullname">{member.full_name}</span>
-                <span className="member-sub">{member.phone_number} | {member.cin}</span>
+                {member.username && <span className="member-username">@{member.username}</span>}
+                <span className="member-sub">{member.phone_number}</span>
               </div>
               <div className="member-tag-wrapper">
                 <span className={`role-tag ${member.role.toLowerCase()}`}>{member.role}</span>
@@ -254,7 +255,7 @@ return (
                 <option value="">-- Choisir un utilisateur --</option>
                 {allUsers.map(user => (
                   <option key={user.id} value={user.phone_number || user.id}>
-                    {user.full_name || "Sans nom"} - {user.phone_number} {user.cin ? `(${user.cin})` : ""}
+                    {user.full_name || "Sans nom"} {user.username ? `(@${user.username})` : ""} - {user.phone_number}
                   </option>
                 ))}
               </select>
