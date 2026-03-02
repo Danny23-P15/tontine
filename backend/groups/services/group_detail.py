@@ -1,4 +1,4 @@
-from groups.models import ValidationGroup, GroupMembership
+from groups.models import ValidationGroup, GroupMembership, Operation, OperationType, OperationStatus
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import PermissionDenied
 
@@ -31,6 +31,21 @@ def get_group_detail(user, group_id):
             "joined_at": m.joined_at
         })
 
+    # déterminer s'il existe déjà une demande de suppression en attente
+    pending_delete = Operation.objects.filter(
+        group=group,
+        operation_type=OperationType.DELETE_GROUP,
+        status=OperationStatus.PENDING,
+    ).exists()
+
+    # déterminer s'il existe des opérations en attente (autres que suppression)
+    has_pending_operations = Operation.objects.filter(
+        group=group,
+        status=OperationStatus.PENDING,
+    ).exclude(
+        operation_type=OperationType.DELETE_GROUP
+    ).exists()
+
     return {
         "id": group.id,
         "group_name": group.group_name,
@@ -42,5 +57,9 @@ def get_group_detail(user, group_id):
             "role": membership.role
         },
 
-        "members": members
+        "members": members,
+        # flag added for frontend to know a deletion request is pending
+        "pending_deletion": pending_delete,
+        # flag to prevent deletion if there are pending operations
+        "has_pending_operations": has_pending_operations,
     }

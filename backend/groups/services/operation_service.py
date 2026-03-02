@@ -236,7 +236,8 @@ def create_remove_validator_operation(
         group=group,
         initiator_phone_number=initiator_phone,
         operation_type=OperationType.REMOVE_VALIDATOR,
-        reference=str(uuid.uuid4()),
+        reference=f"RM-GR-{uuid.uuid4().hex[:8]}",
+
         payload={
             "validator_phone_to_remove": validator_phone_to_remove
         },
@@ -329,6 +330,8 @@ def request_delete_group(*, group: ValidationGroup, initiator_phone: str):
         initiator_phone_number=initiator_phone,
         payload={},
         status=OperationStatus.PENDING,
+        # ajouter une référence unique comme les autres opérations
+        reference=generate_reference(prefix="OP-DEL"),
         expires_at=timezone.now() + timedelta(hours=24)
     )
 
@@ -342,7 +345,8 @@ def request_delete_group(*, group: ValidationGroup, initiator_phone: str):
     for v in validators:
         OperationValidation.objects.create(
             operation=operation,
-            validator_phone_number=v.phone_number
+            validator_phone_number=v.phone_number,
+            validation_reference=f"VAL-{uuid.uuid4().hex[:8]}"
         )
 
     # 6️⃣ Notifier

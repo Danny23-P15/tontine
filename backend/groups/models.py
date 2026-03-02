@@ -107,7 +107,7 @@ class TemporaryGroupCreation(models.Model):
     quorum = models.PositiveIntegerField()
 
     created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()  # ex: +48h
+    expires_at = models.DateTimeField()
 
     is_cancelled = models.BooleanField(default=False)
 

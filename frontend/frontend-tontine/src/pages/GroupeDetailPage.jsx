@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getGroupDetail } from "../services/groups";
+import { getGroupDetail, requestRemoveValidator, requestDeleteGroup } from "../services/groups";
 import "../css/GroupDetailPage.css";
 import axios from "axios";
-import { requestRemoveValidator } from "../services/groups";
 import api from "../services/api";
 
 function GroupDetailPage() {
@@ -164,16 +163,21 @@ const handleRemoveValidator = async (phone) => {
 };
 
 const handleDeleteGroupRequest = async () => {
-  try {
-    await api.post(`http://127.0.0.1:8000/api/groups/delete/request/`, {
-      group_id: group.id
-    });
+  if (!window.confirm("Voulez-vous vraiment lancer la demande de suppression ?")) return;
 
-    alert("Demande de suppression envoyée.");
+  try {
+    const resp = await requestDeleteGroup(group.id);
+    alert(resp.message || "Demande de suppression envoyée.");
+
     const updatedGroup = await getGroupDetail(groupId);
     setGroup(updatedGroup);
   } catch (error) {
-    alert(error.response?.data?.detail || "Erreur lors de la suppression");
+    console.error("Erreur deletion group", error);
+    const msg =
+      error.response?.data?.message ||
+      error.response?.data?.detail ||
+      "Erreur lors de la suppression";
+    alert(msg);
   }
 };
 
@@ -209,10 +213,20 @@ return (
           <span className="stat-value highlight">{group.me?.role}</span>
         </div>
         
-        {group.me?.role === "INITIATOR" && (
+        {group.me?.role === "INITIATOR" && !group.pending_deletion && !group.has_pending_operations && (
            <button className="delete-group-link" onClick={handleDeleteGroupRequest}>
              Supprimer le groupe définitivement
            </button>
+        )}
+        {group.me?.role === "INITIATOR" && group.pending_deletion && (
+           <div className="delete-group-pending">
+             ⚠️ Demande de suppression en cours
+           </div>
+        )}
+        {group.me?.role === "INITIATOR" && group.has_pending_operations && !group.pending_deletion && (
+           <div className="delete-group-pending">
+             ⚠️ Opérations en attente - Suppression impossible
+           </div>
         )}
       </aside>
 

@@ -10,7 +10,7 @@
   padding: 40px;
   background-color: var(--black-deep);
   min-height: 100vh;
-  color: white;
+  /* color: white; */
 }
 
 .groups-header {

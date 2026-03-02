@@ -33,3 +33,12 @@ export async function requestRemoveValidator(groupId, validatorPhone) {
 
   return data;
 }
+
+export async function requestDeleteGroup(groupId) {
+  const response = await api.post("/groups/delete/request/", {
+    group_id: groupId,
+  });
+
+  // axios throws if status not 2xx; we can simply return data
+  return response.data;
+}
