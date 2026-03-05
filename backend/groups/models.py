@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 # from django.db import Q
+from core.models import User
 
 
 class GroupRole(models.TextChoices):
@@ -25,29 +26,24 @@ class ValidationGroup(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     def update_active_status(self):
-        self.is_active = True
-        self.save(update_fields=["is_active"])
-
-# fonction pour décider si le groupe est actif
-
-def update_active_status(self):
-    validators_count = self.memberships.filter(
-        role=GroupRole.VALIDATOR,
-        left_at__isnull=True
-    ).count()
-
-    new_status = validators_count > self.quorum
-
-    # éviter les updates inutiles
-    if self.is_active != new_status:
-        # mise à jour du groupe
-        self.is_active = new_status
-        self.save(update_fields=["is_active"])
-
-        # synchronisation des membres actifs
-        self.memberships.filter(
+        
+        validators_count = self.memberships.filter(
+            role=GroupRole.VALIDATOR,
             left_at__isnull=True
-        ).update(is_active=new_status)
+        ).count()
+
+        # le membre initiateur n’est pas comptabilisé dans le quorum
+        new_status = validators_count > self.quorum
+
+        # éviter les mises à jour inutiles
+        if self.is_active != new_status:
+            self.is_active = new_status
+            self.save(update_fields=["is_active"])
+
+            # synchronisation des membres actifs
+            self.memberships.filter(
+                left_at__isnull=True
+            ).update(is_active=new_status)
 
 
 class GroupMembership(models.Model):
@@ -66,6 +62,17 @@ class GroupMembership(models.Model):
     )
 
     is_active = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        # lorsqu’on crée un membre, on reflète l’état actuel du groupe
+        if self._state.adding and self.group_id is not None:
+            # récupération différée du groupe si nécessaire
+            if hasattr(self, "group"):
+                grp = self.group
+            else:
+                grp = ValidationGroup.objects.get(id=self.group_id)
+            self.is_active = grp.is_active
+        super().save(*args, **kwargs)
 
     joined_at = models.DateTimeField(auto_now_add=True)
     left_at = models.DateTimeField(null=True, blank=True)
@@ -86,6 +93,17 @@ class GroupMembership(models.Model):
                 condition=models.Q(left_at__isnull=True),
                 name="unique_cin_per_group"
             ),
+
+            # models.UniqueConstraint(
+            #     fields=["owner_user"],
+            #     condition=models.Q(owner_type="USER"),
+            #     name="unique_user_account"
+            # ),
+            # models.UniqueConstraint(
+            #     fields=["owner_group"],
+            #     condition=models.Q(owner_type="GROUP"),
+            #     name="unique_group_account"
+            # ),
         ]
 
     def leave_group(self):
@@ -157,6 +175,7 @@ class OperationType(models.TextChoices):
     ADD_VALIDATOR = "ADD_VALIDATOR", "Add validator"
     REMOVE_VALIDATOR = "REMOVE_VALIDATOR", "Remove validator"
     DELETE_GROUP = "DELETE_GROUP", "Delete group"
+    TRANSACTION = "TRANSACTION", "Transaction"
 
 class Operation(models.Model):
 
@@ -288,10 +307,55 @@ class TemporaryGroupValidatorStatus(models.TextChoices):
     REJECTED = "REJECTED"
 
 
+class Account(models.Model):
+    owner_type = models.CharField(
+        max_length=20, 
+        choices=[("USER", "User"), ("GROUP", "Group")]
+    )
+    owner_user = models.ForeignKey("core.User", null=True, blank=True, on_delete=models.CASCADE)
+    owner_phone_number = models.CharField(max_length=20, null=True, blank=True)
+    owner_group = models.ForeignKey("ValidationGroup", null=True, blank=True, on_delete=models.CASCADE)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    is_active = models.BooleanField(default=True)
+
+class Transaction(models.Model):
+    operation = models.OneToOneField(
+        Operation,
+        on_delete=models.CASCADE,
+        related_name="transaction"
+    )
+
+    reference = models.CharField(
+        max_length=50,
+        unique=True,
+        null=True,
+        blank=True
+    )
+
+    recipient_phone_number = models.CharField(max_length=20)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    executed_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    debited_account = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
+
+    credited_account = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        related_name="credit_transactions",
+        null=True,
+        blank=True
+    )
+
+
 class TemporaryAddValidator(models.Model):
-    """
-    Opération temporaire d’ajout d’un validateur à un groupe existant.
-    """
 
     group = models.ForeignKey(
         "groups.ValidationGroup",

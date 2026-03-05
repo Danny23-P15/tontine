@@ -7,6 +7,7 @@ class PendingOperationSerializer(serializers.ModelSerializer):
     approved_count = serializers.SerializerMethodField()
     rejected_count = serializers.SerializerMethodField()
     my_validation_status = serializers.SerializerMethodField()
+    transaction_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Operation
@@ -20,6 +21,7 @@ class PendingOperationSerializer(serializers.ModelSerializer):
             "approved_count",
             "rejected_count",
             "my_validation_status",
+            "transaction_details",
         ]
 
     def get_group(self, obj):
@@ -45,6 +47,14 @@ class PendingOperationSerializer(serializers.ModelSerializer):
         ).first()
 
         return validation.status if validation else None
+
+    def get_transaction_details(self, obj):
+        if obj.operation_type == "TRANSACTION" and hasattr(obj, 'transaction'):
+            return {
+                "recipient_phone_number": obj.transaction.recipient_phone_number,
+                "amount": str(obj.transaction.amount)
+            }
+        return None
 
 
 class RespondOperationSerializer(serializers.Serializer):

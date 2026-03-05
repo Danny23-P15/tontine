@@ -23,3 +23,9 @@ class OperationEvent(str, Enum):
     DELETE_GROUP_REJECTED = "delete_group_rejected"
     DELETE_GROUP_COMPLETED = "delete_group_completed"
     DELETE_GROUP_EXPIRED = "delete_group_expired"
+
+    # transactions
+    TRANSACTION_REQUESTED = "transaction_requested"
+    TRANSACTION_APPROVED = "transaction_approved"
+    TRANSACTION_REJECTED = "transaction_rejected"
+    TRANSACTION_EXECUTED = "transaction_executed"

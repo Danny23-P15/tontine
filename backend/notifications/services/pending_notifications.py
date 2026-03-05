@@ -235,6 +235,61 @@ def get_pending_notifications(user):
             }
         })
 
+    # 5️⃣ Transactions (OPERATION)
+
+    pending_transaction_ops = OperationValidation.objects.select_related(
+        "operation",
+        "operation__group"
+    ).filter(
+        validator_phone_number=phone_number,
+        status=ValidationStatus.PENDING,
+        operation__operation_type=OperationType.TRANSACTION,
+        operation__status=OperationStatus.PENDING,
+        operation__expires_at__gt=now
+    )
+
+    for ov in pending_transaction_ops:
+        operation = ov.operation
+        group = operation.group
+
+        accepted_count = OperationValidation.objects.filter(
+            operation=operation,
+            status=ValidationStatus.ACCEPTED
+        ).count()
+
+        amount = operation.payload.get("amount", "N/A")
+        recipient = operation.payload.get("recipient_phone_number", "N/A")
+
+        results.append({
+            "id": f"transaction-op-{operation.id}",
+            "type": "TRANSACTION_REQUEST",
+            "event": OperationEvent.TRANSACTION_REQUESTED.value,
+            "title": "Demande de transaction",
+            "message": (
+                f"L'initiateur {operation.initiator_phone_number} "
+                f"souhaite transférer {amount} Ar vers {recipient} "
+                f"du groupe « {group.group_name} »."
+            ),
+            "created_at": operation.created_at,
+
+            "action": {
+                "endpoint": "/api/operations/respond/",
+                "method": "POST",
+                "payload": {
+                    "operation_id": operation.id
+                }
+            },
+
+            "context": {
+                "group_name": group.group_name,
+                "initiator_phone": operation.initiator_phone_number,
+                "amount": amount,
+                "recipient_phone": recipient,
+                "validators_required": group.quorum,
+                "validators_accepted": accepted_count
+            }
+        })
+
     return {
         "count": len(results),
         "results": results

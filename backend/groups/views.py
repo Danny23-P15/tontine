@@ -3,31 +3,50 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from decimal import Decimal
 
-from groups.serializers import CreateGroupRequestSerializer
-from groups.services.group_creation import create_group_request
-from groups.services.group_validation import respond_to_group_creation
-from groups.serializers import RespondGroupCreationSerializer
-from groups.services.my_groups import get_my_groups
-from groups.services.group_detail import get_group_detail
-from groups.services.operation_service import request_add_validator
-from groups.models import ValidationGroup
-from groups.serializers import AddValidatorSerializer
 from django.contrib.auth import get_user_model
-from core.models import User
-from groups.services.operation_validation import respond_to_add_validator_request
-from groups.serializers import RespondAddValidatorSerializer, RemoveValidatorSerializer
-from groups.services.operation_service import request_remove_validator
-from groups.models import Operation
-from groups.models import TemporaryGroupCreation
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from groups.services.operation_validation import respond_to_remove_validator_request
-from groups.models import OperationType
-from groups.services.operation_validation import respond_to_delete_group_request
-from groups.services.operation_service import request_delete_group
-from groups.models import OperationStatus, ValidationStatus
-from groups.services.operation_service import cancel_operation
 
+from core.models import User
+from groups.models import (
+    Operation, OperationStatus, OperationType, Transaction,
+    ValidationGroup, ValidationStatus, TemporaryGroupCreation,
+)
+from groups.serializers import (
+    AddValidatorSerializer, CreateGroupRequestSerializer,
+    RemoveValidatorSerializer, RespondAddValidatorSerializer,
+    RespondGroupCreationSerializer,
+)
+
+from groups.services import (
+    group_creation as gc,
+    group_validation as gv,
+    my_groups as mg,
+    initiator_groups as ig,
+    group_detail as gd,
+    operation_service as os,
+    operation_validation as ov,
+)
+
+create_group_request = gc.create_group_request
+respond_to_group_creation = gv.respond_to_group_creation
+get_my_groups = mg.get_my_groups
+get_initiator_groups = ig.get_initiator_groups
+get_group_detail = gd.get_group_detail
+
+request_add_validator = os.request_add_validator
+request_transaction = os.request_transaction
+request_remove_validator = os.request_remove_validator
+request_delete_group = os.request_delete_group
+cancel_operation = os.cancel_operation
+create_operation = os.create_operation
+
+respond_to_add_validator_request = ov.respond_to_add_validator_request
+respond_to_remove_validator_request = ov.respond_to_remove_validator_request
+respond_to_delete_group_request = ov.respond_to_delete_group_request
+respond_to_transaction_request = ov.respond_to_transaction_request
 
 class CreateGroupRequestAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -83,6 +102,13 @@ class MyGroupsAPIView(APIView):
 
     def get(self, request):
         data = get_my_groups(request.user)
+        return Response(data, status=status.HTTP_200_OK)
+
+class MyInitiatorGroupsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        data = get_initiator_groups(request.user)
         return Response(data, status=status.HTTP_200_OK)
     
 class GroupDetailAPIView(APIView):
@@ -221,6 +247,15 @@ class RespondOperationAPIView(APIView):
                 rejection_reason=serializer.validated_data.get("rejection_reason")
             )
 
+        elif operation_type == OperationType.TRANSACTION:
+            # Ici on pourrait avoir un serializer spécifique pour les transactions
+            success, message = respond_to_transaction_request(
+                operation=operation,
+                validator_phone=request.user.phone_number,
+                accept=serializer.validated_data["accept"],
+                rejection_reason=serializer.validated_data.get("rejection_reason")
+            )
+
 
         else:
             return Response(
@@ -352,3 +387,38 @@ class CancelOperationAPIView(APIView):
             return Response({"detail": message}, status=400)
 
         return Response({"detail": message})
+    
+class RequestTransactionAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, group_id):
+        amount = Decimal(request.data.get("amount"))
+        recipient = request.data.get("phone_number")
+
+        group = get_object_or_404(
+            ValidationGroup,
+            id=group_id,
+            is_active=True
+        )
+
+        success, message = request_transaction(
+            group=group,
+            initiator_phone=request.user.phone_number,
+            recipient_phone=recipient,
+            amount=amount
+        )
+
+        if not success:
+            return Response({"detail": message}, status=400)
+
+        # Get the created operation
+        operation = Operation.objects.filter(
+            group=group,
+            initiator_phone_number=request.user.phone_number,
+            operation_type=OperationType.TRANSACTION,
+            status=OperationStatus.PENDING
+        ).latest('created_at')
+
+        return Response({
+            "reference": operation.reference
+        })

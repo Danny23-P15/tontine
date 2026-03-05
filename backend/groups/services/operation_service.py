@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
-from groups.services.group_rules import can_remove_validator
+from groups.services.group_rules import *
 from groups.models import Operation, OperationType, OperationStatus, GroupMembership, GroupRole, OperationValidation, ValidationStatus
 from django.utils import timezone
 import uuid
@@ -21,8 +21,8 @@ from groups.models import (
     OperationType,
     OperationStatus,
     OperationValidation,
-    TemporaryAddValidator
-
+    TemporaryAddValidator,
+    Transaction
 )
 from groups.utils import generate_reference  # on va la créer juste après
 from groups.services.group_rules import can_add_validator, can_remove_validator
@@ -56,7 +56,7 @@ def create_operation(
     validators = GroupMembership.objects.filter(
         group=group,
         role=GroupRole.VALIDATOR,
-        is_active=True,
+        # is_active=True,
         left_at__isnull=True
     )
 
@@ -330,7 +330,6 @@ def request_delete_group(*, group: ValidationGroup, initiator_phone: str):
         initiator_phone_number=initiator_phone,
         payload={},
         status=OperationStatus.PENDING,
-        # ajouter une référence unique comme les autres opérations
         reference=generate_reference(prefix="OP-DEL"),
         expires_at=timezone.now() + timedelta(hours=24)
     )
@@ -386,3 +385,74 @@ def cancel_operation(operation: Operation, user_phone: str) -> tuple[bool, str |
         # )
 
     return True, "Opération annulée avec succès"
+
+
+def request_transaction(
+    *,
+    group: ValidationGroup,
+    initiator_phone: str,
+    recipient_phone: str,
+    amount: Decimal,
+) -> tuple[bool, str | None]:
+
+    # 🔒 Seul initiateur
+    if group.initiator_phone_number != initiator_phone:
+        return False, "Seul l’initiateur peut créer une transaction"
+
+    if not group.is_active:
+        return False, "Le groupe n’est pas actif"
+
+    # ✅ Règles métier spécifiques
+    allowed, reason = can_request_transaction(
+        group=group,
+        amount=amount
+    )
+
+    if not allowed:
+        return False, reason
+
+    with transaction.atomic():
+
+        operation = Operation.objects.create(
+            group=group,
+            initiator_phone_number=initiator_phone,
+            operation_type=OperationType.TRANSACTION,
+            reference=f"OP-TXN-{uuid.uuid4().hex[:8]}",
+            payload={
+                "recipient_phone_number": recipient_phone,
+                "amount": str(amount),
+            },
+            status=OperationStatus.PENDING,
+            expires_at=timezone.now() + timezone.timedelta(hours=48)
+        )
+
+        # Créer l'objet Transaction
+        Transaction.objects.create(
+            operation=operation,
+            recipient_phone_number=recipient_phone,
+            amount=amount,
+            reference=f"TXN-{uuid.uuid4().hex[:8]}"
+        )
+
+        validators = group.memberships.filter(
+            role=GroupRole.VALIDATOR,
+            left_at__isnull=True
+        )
+
+        OperationValidation.objects.bulk_create([
+            OperationValidation(
+                operation=operation,
+                validator_phone_number=v.phone_number,
+                validation_reference=f"VAL-{uuid.uuid4().hex[:8]}",
+                status=OperationStatus.PENDING
+            )
+            for v in validators
+        ])
+
+        notify_operation_status(
+            source=operation,
+            event=OperationEvent.TRANSACTION_REQUESTED,
+            actor_phone=initiator_phone
+        )
+
+    return True, "Demande de transaction envoyée pour validation"

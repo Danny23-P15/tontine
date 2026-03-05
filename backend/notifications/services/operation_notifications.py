@@ -113,6 +113,12 @@ def notify_operation_status(
         "validator_phone": actor_phone,
     }
 
+    # si la source est une opération et contient un payload JSON, on expose
+    # ses clés pour permettre un message plus riche (montant, destinataire...)
+    if hasattr(source, "payload") and isinstance(source.payload, dict):
+        context.update(source.payload)
+
+
     # =========================
     # 🔔 Création des notifications
     # =========================

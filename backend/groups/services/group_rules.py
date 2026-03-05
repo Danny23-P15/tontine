@@ -1,6 +1,8 @@
 from groups.models import GroupMembership, GroupRole
 from groups.models import ValidationGroup, TemporaryGroupCreation
 from django.utils import timezone
+from groups.models import Operation, OperationType, OperationStatus, Account
+from decimal import Decimal
 
 
 def get_user_group_stats(phone_number: str) -> dict:
@@ -162,3 +164,42 @@ def can_delete_group(
 
     return True, None
 
+def can_request_transaction(
+    *,
+    group: ValidationGroup,
+    amount: Decimal,
+) -> tuple[bool, str | None]:
+
+    if amount <= 0:
+        return False, "Le montant doit être supérieur à 0"
+
+    validators_count = group.memberships.filter(
+        role=GroupRole.VALIDATOR,
+        left_at__isnull=True
+    ).count()
+
+    if validators_count == 0:
+        return False, "Aucun validateur actif dans le groupe"
+
+    delete_pending = Operation.objects.filter(
+        group=group,
+        operation_type=OperationType.DELETE_GROUP,
+        status=OperationStatus.PENDING
+    ).exists()
+
+    if delete_pending:
+        return False, "Une suppression de groupe est en cours"
+
+    # Vérifier le solde du compte du groupe
+    try:
+        group_account = Account.objects.get(
+            owner_type="GROUP",
+            owner_group=group,
+            is_active=True
+        )
+        if group_account.balance < amount:
+            return False, f"Solde insuffisant. Solde actuel: {group_account.balance}, Montant demandé: {amount}"
+    except Account.DoesNotExist:
+        return False, "Le groupe n'a pas de compte actif"
+
+    return True, None

@@ -165,8 +165,46 @@ OPERATION_NOTIFICATION_MAP = {
         "recipients": ["initiator"],
         "title": "Demande expirée",
         "message": "La demande de suppression du groupe « {group_name} » a expiré.",
-    }
+    },
 
+    # transactions
+    OperationEvent.TRANSACTION_REQUESTED: {
+        "source_type": NotificationSourceType.OPERATION,
+        "recipients": ["validators"],
+        "title": "Demande de transaction",
+        "message": (
+            "{validator_phone} a initié une transaction de {amount} Ar vers "
+            "{recipient_phone_number}."
+        ),
+        "actionable": True,
+    },
 
+    OperationEvent.TRANSACTION_APPROVED: {
+        "source_type": NotificationSourceType.OPERATION,
+        "recipients": ["initiator"],
+        "title": "Transaction approuvée",
+        "message": (
+            "La transaction initiée par {validator_phone} dans le groupe « {group_name} » a été approuvée."
+        ),
+        "actionable": False,
+    },
+
+    OperationEvent.TRANSACTION_REJECTED: {
+        "source_type": NotificationSourceType.OPERATION,
+        "recipients": ["initiator"],
+        "title": "Transaction rejetée",
+        "message": (
+            "La transaction initiée par {validator_phone} dans le groupe « {group_name} » a été rejetée."
+        ),
+        "actionable": False,
+    },
+
+    OperationEvent.TRANSACTION_EXECUTED: {
+        "source_type": NotificationSourceType.OPERATION,
+        "recipients": ["initiator"],
+        "title": "Transaction exécutée",
+        "message": "La transaction de {amount} Ar a été exécutée.",
+        "actionable": False,
+    },
 
 }
