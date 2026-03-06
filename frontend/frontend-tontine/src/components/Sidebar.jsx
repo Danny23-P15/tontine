@@ -11,7 +11,8 @@ import {
   FileText, 
   Bell, 
   LogOut, 
-  ShieldCheck 
+  ShieldCheck,
+  DollarSign 
 } from "lucide-react";
 import "../css/Sidebar.css";
 
@@ -31,11 +32,6 @@ function Sidebar() {
             {/* <ShieldCheck size={20} color="#000" strokeWidth={3} /> */}
                 <img src={logo} alt="Logo"  style={{width: "180px", height: "126px"}}/>
         </div>
-
-        {/* <div className="user-header">
-          <span className="user-label">Connecté :</span>
-          <div className="user-number">{user?.phone_number || localStorage.getItem("phone_number") || "—"}</div>
-        </div> */}
 
         <nav className="nav">
           <p className="nav-section-title">Validation</p>
@@ -59,19 +55,27 @@ function Sidebar() {
             <FileText size={18} className="icon" /> 
             <span className="link-text">Mes demandes initiées</span>
           </NavLink>
+          <NavLink to="/transactions" className="nav-link">
+            <DollarSign size={18} className="icon" /> 
+            <span className="link-text">Transactions</span>
+          </NavLink>
           <NavLink to="/notifications/inbox" className="nav-link">
             <Bell size={18} className="icon" /> 
             <span className="link-text">Notifications</span>
           </NavLink>
         </nav>
-      </div>
-
-      <div className="sidebar-bottom">
         <button className="logout-btn" onClick={handleLogout}>
           <LogOut size={18} className="icon" />
           <span className="link-text">Déconnexion</span>
         </button>
       </div>
+
+      {/* <div className="sidebar-bottom">
+        <button className="logout-btn" onClick={handleLogout}>
+          <LogOut size={18} className="icon" />
+          <span className="link-text">Déconnexion</span>
+        </button>
+      </div> */}
     </aside>
   );
 }

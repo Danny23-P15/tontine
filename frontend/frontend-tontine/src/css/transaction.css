@@ -1,0 +1,206 @@
+.transaction-container {
+  max-width: 550px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #111111;
+  border: 1px solid #222;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+/* Notification Toast */
+.notification-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  max-width: 400px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  animation: slideIn 0.3s ease-out;
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.notification-toast.notification-error {
+  background: #DC2626;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.notification-toast.notification-success {
+  background: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.3);
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+  font-size: 14px;
+  flex: 1;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.notification-close:hover {
+  opacity: 0.75;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .notification-toast {
+    left: 15px;
+    right: 15px;
+    max-width: none;
+  }
+}
+
+.transaction-header {
+  text-align: center;
+  margin-bottom: 35px;
+}
+
+.header-icon-circle {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.page-subtitle {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Formulaire */
+.transaction-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.label-currency {
+  color: #FFD700;
+  font-weight: 900;
+  font-size: 11px;
+}
+
+.premium-input {
+  background: #0A0A0A;
+  border: 1px solid #222;
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: white;
+  font-size: 15px;
+  transition: all 0.3s;
+}
+
+.premium-input:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.05);
+}
+
+.amount-input {
+  font-size: 20px;
+  font-weight: 700;
+  color: #FFD700;
+}
+
+/* Résumé du groupe */
+.group-summary-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  background: rgba(255, 215, 0, 0.03);
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px dashed #333;
+}
+
+.summary-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  color: #ddd;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Bouton Envoyer */
+.btn-submit-transaction {
+  margin-top: 10px;
+  background: #FFD700;
+  color: black;
+  border: none;
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-submit-transaction:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 215, 0, 0.2);
+}
+
+.btn-submit-transaction:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}

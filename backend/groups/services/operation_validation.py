@@ -150,58 +150,61 @@ def respond_to_add_validator_request(
     validation.validated_at = timezone.now()
     validation.save()
 
-    # Si refus immédiat
-    if not accept:
+    group = operation.group
+    total = operation.validations.count()
+    accepted = operation.validations.filter(
+        status=ValidationStatus.ACCEPTED
+    ).count()
+    rejected = operation.validations.filter(
+        status=ValidationStatus.REJECTED
+    ).count()
+
+    # 📊 Vérifier si le quorum est encore atteignable
+    remaining = total - (accepted + rejected)
+    max_possible_accept = accepted + remaining
+
+    if max_possible_accept < group.quorum:
+        # ❌ Quorum impossible à atteindre → rejet
         operation.mark_rejected()
         notify_operation_status(
             source=operation.group,
             event=OperationEvent.ADD_VALIDATOR_REJECTED,
             actor_phone=validator_phone
         )
-        return True, "Demande de validateur refusée"
+        return True, "Demande de validateur rejetée (quorum impossible)"
 
-    # 📊 Calcul du quorum
-    accepted_count = operation.validations.filter(
-        status=ValidationStatus.ACCEPTED
-    ).count()
+    # ✅ Quorum atteint
+    if accepted >= group.quorum:
+        payload = operation.payload
+        validator_phone_to_add = payload["validator_phone_number"]
+        cin = payload["cin"]
 
-    quorum = operation.group.quorum
+        GroupMembership.objects.create(
+            group=operation.group,
+            phone_number=validator_phone_to_add,
+            cin=cin,
+            role=GroupRole.VALIDATOR
+        )
 
-    # ⏳ quorum pas encore atteint
-    if accepted_count < quorum:
+        operation.mark_completed()
+
         notify_operation_status(
             source=operation,
-            event=OperationEvent.VALIDATION_RECORDED,
-            actor_phone=validator_phone
+            event=OperationEvent.VALIDATOR_ADDED,
+            actor_phone=validator_phone_to_add,
         )
-        return True, "Votre réponse a été enregistrée"
 
-    # ✅ quorum atteint → ajout du validateur
-    payload = operation.payload
-    validator_phone_to_add = payload["validator_phone_number"]
-    cin = payload["cin"]
+        return True, "Le validateur a été ajouté au groupe (Quorum atteint)"
 
-    GroupMembership.objects.create(
-        group=operation.group,
-        phone_number=validator_phone_to_add,
-        cin=cin,
-        role=GroupRole.VALIDATOR
-    )
-
-    operation.mark_completed()
-
+    # ⏳ Quorum pas encore atteint mais possible
     notify_operation_status(
         source=operation,
-        event=OperationEvent.VALIDATOR_ADDED,
-        actor_phone=validator_phone_to_add,
-    # extra_context={
-    #     "validator_phone": validator_phone,
-    #     "group_name": operation.group.group_name
-    # }
-)
+        event=OperationEvent.VALIDATION_RECORDED,
+        actor_phone=validator_phone
+    )
+    
+    return True, "Votre réponse a été enregistrée"
 
-
-    return True, "Le validateur a été ajouté au groupe (Quorum atteint)"
 
 def execute_add_validator(operation: Operation):
     data = operation.payload
@@ -249,63 +252,67 @@ def respond_to_remove_validator_request(
     validation.validated_at = timezone.now()
     validation.save()
 
-    # ❌ Si un validateur refuse → opération rejetée immédiatement
-    if not accept:
-        operation.mark_rejected()
+    group = operation.group
+    total = operation.validations.count()
+    accepted = operation.validations.filter(
+        status=ValidationStatus.ACCEPTED
+    ).count()
+    rejected = operation.validations.filter(
+        status=ValidationStatus.REJECTED
+    ).count()
 
+    # 📊 Vérifier si le quorum est encore atteignable
+    remaining = total - (accepted + rejected)
+    max_possible_accept = accepted + remaining
+
+    if max_possible_accept < group.quorum:
+        # ❌ Quorum impossible à atteindre → rejet
+        operation.mark_rejected()
         notify_operation_status(
             source=operation,
             event=OperationEvent.REMOVE_VALIDATOR_REJECTED,
             actor_phone=validator_phone
         )
+        return True, "Suppression refusée (quorum impossible)"
 
-        return True, "Suppression refusée"
+    # if quorum reached, remove validator
+    if accepted >= group.quorum:
+        payload = operation.payload
+        phone_to_remove = payload["validator_phone_number"]
 
-    # 📊 Calcul quorum
-    accepted_count = operation.validations.filter(
-        status=ValidationStatus.ACCEPTED
-    ).count()
+        try:
+            membership = GroupMembership.objects.get(
+                group=operation.group,
+                phone_number=phone_to_remove,
+                role=GroupRole.VALIDATOR,
+                left_at__isnull=True
+            )
+        except GroupMembership.DoesNotExist:
+            return False, "Le validateur n’existe plus"
 
-    quorum = operation.group.quorum
+        membership.left_at = timezone.now()
+        membership.save()
 
-    # ⏳ quorum pas encore atteint
-    if accepted_count < quorum:
+        # recalculer état du groupe après départ
+        operation.group.update_active_status()
+        operation.mark_completed()
+
         notify_operation_status(
             source=operation,
-            event=OperationEvent.VALIDATION_RECORDED,
-            actor_phone=validator_phone
+            event=OperationEvent.VALIDATOR_REMOVED,
+            actor_phone=phone_to_remove
         )
-        return True, "Votre réponse a été enregistrée"
 
-    # ✅ quorum atteint → suppression effective
-    payload = operation.payload
-    phone_to_remove = payload["validator_phone_number"]
+        return True, "Le validateur a été supprimé du groupe (Quorum atteint)"
 
-    try:
-        membership = GroupMembership.objects.get(
-            group=operation.group,
-            phone_number=phone_to_remove,
-            role=GroupRole.VALIDATOR,
-            left_at__isnull=True
-        )
-    except GroupMembership.DoesNotExist:
-        return False, "Le validateur n’existe plus"
-
-    membership.left_at = timezone.now()
-    membership.save()
-
-    # recalculer état du groupe après départ
-    operation.group.update_active_status()
-
-    operation.mark_completed()
-
+    # if quorum not yet reached but still possible
     notify_operation_status(
         source=operation,
-        event=OperationEvent.VALIDATOR_REMOVED,
-        actor_phone=phone_to_remove
+        event=OperationEvent.VALIDATION_RECORDED,
+        actor_phone=validator_phone
     )
-
-    return True, "Le validateur a été supprimé du groupe (Quorum atteint)"
+    
+    return True, "Votre réponse a été enregistrée"
 
 def respond_to_group_deletion(operation: Operation):
     group = operation.group
@@ -541,7 +548,7 @@ def respond_to_transaction_request(
 ):
     """
     Traite la réponse d'un validateur à une demande de transaction.
-    Un rejet immédiat = rejet de la transaction.
+    La transaction n'est rejetée que si le quorum n'est plus atteignable.
     Quorum atteint = exécution de la transaction.
     """
 
@@ -565,8 +572,22 @@ def respond_to_transaction_request(
     ov.validated_at = timezone.now()
     ov.save()
 
-    # ❌ Un seul refus = rejet total pour transaction
-    if not accept:
+    group = operation.group
+    total = operation.validations.count()
+    accepted = operation.validations.filter(
+        status=ValidationStatus.ACCEPTED
+    ).count()
+    rejected = operation.validations.filter(
+        status=ValidationStatus.REJECTED
+    ).count()
+
+    # ❌ Vérifier si le quorum est encore atteignable
+    # Si le nombre de validateurs restants (total - répondu) + accepted est < quorum
+    remaining = total - (accepted + rejected)
+    max_possible_accept = accepted + remaining
+
+    if max_possible_accept < group.quorum:
+        # Quorum impossible à atteindre → rejet
         operation.status = OperationStatus.REJECTED
         operation.resolved_at = timezone.now()
         operation.save(update_fields=["status", "resolved_at"])
@@ -577,27 +598,23 @@ def respond_to_transaction_request(
             actor_phone=validator_phone
         )
 
-        return True, "Transaction rejetée"
+        return True, "Transaction rejetée (quorum impossible)"
 
-    # Vérification du quorum
-    group = operation.group
-    total = operation.validations.count()
-    accepted = operation.validations.filter(
-        status=ValidationStatus.ACCEPTED
-    ).count()
+    # Vérification du quorum atteint
+    if accepted >= group.quorum:
+        # ✅ Quorum atteint → exécution de la transaction
+        execute_transaction(operation)
 
-    if accepted < group.quorum:
-        notify_operation_status(
-            source=operation,
-            event=OperationEvent.VALIDATION_RECORDED,
-            actor_phone=validator_phone
-        )
-        return True, "Validation enregistrée"
+        return True, "Transaction approuvée et exécutée"
 
-    # ✅ Quorum atteint → exécution de la transaction
-    execute_transaction(operation)
-
-    return True, "Transaction approuvée et exécutée"
+    # ⏳ Quorum pas encore atteint mais possible
+    notify_operation_status(
+        source=operation,
+        event=OperationEvent.VALIDATION_RECORDED,
+        actor_phone=validator_phone
+    )
+    
+    return True, "Validation enregistrée"
 
 
 def execute_operation(operation: Operation):

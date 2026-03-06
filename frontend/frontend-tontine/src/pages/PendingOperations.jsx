@@ -81,6 +81,22 @@ export default function PendingOperationsPage() {
           </p>
         );
 
+      case "TRANSACTION":
+        return (
+          <div>
+            <p>
+              💸 Demande de transaction depuis le groupe
+              <strong> {op.group_name}</strong>
+            </p>
+            {op.transaction_details && (
+              <div style={{ marginTop: "10px", padding: "10px", backgroundColor: "#f8f9fa", borderRadius: "4px" }}>
+                <p><strong>Destinataire:</strong> {op.transaction_details.recipient_phone_number}</p>
+                <p><strong>Montant:</strong> {op.transaction_details.amount} Ar</p>
+              </div>
+            )}
+          </div>
+        );
+
       default:
         return <p>Opération inconnue</p>;
     }

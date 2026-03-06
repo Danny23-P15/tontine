@@ -10,6 +10,7 @@ import NotificationsInboxPage from "./pages/NotificationsInboxPage";
 import MesGroupesPage from "./pages/MyGroupsPage";
 import GroupDetailPage from "./pages/GroupeDetailPage";
 import InitiatedOperationsPage from "./pages/InitiatedOperationsPage";
+import TransactionsPage from "./pages/TransactionsPage";
 
 
 function App() {
@@ -96,6 +97,17 @@ function App() {
               <PrivateRoute>
                 <Layout>
                   <InitiatedOperationsPage />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/transactions"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <TransactionsPage />
                 </Layout>
               </PrivateRoute>
             }

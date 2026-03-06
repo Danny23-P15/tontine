@@ -191,7 +191,7 @@ def request_remove_validator(
         validators = group.memberships.filter(
             role=GroupRole.VALIDATOR,
             left_at__isnull=True
-        )
+        ).exclude(phone_number=validator_phone)
 
         OperationValidation.objects.bulk_create([
             OperationValidation(
@@ -203,7 +203,7 @@ def request_remove_validator(
             for v in validators
         ])
 
-        # 🔔 Notification
+        # Notification
         notify_operation_status(
             source=operation,
             event=OperationEvent.REMOVE_VALIDATOR_REQUESTED,
