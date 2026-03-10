@@ -11,6 +11,7 @@ export default function TransactionsPage() {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [useGroupAccount, setUseGroupAccount] = useState(true);
 
   useEffect(() => {
     loadGroups();
@@ -70,6 +71,7 @@ export default function TransactionsPage() {
         {
           phone_number: phone.trim(),
           amount: amount,
+          use_group_account: useGroupAccount,
         }
       );
 
@@ -196,6 +198,28 @@ export default function TransactionsPage() {
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
           />
+        </div>
+
+        {/* SECTION SOURCE DU DÉBIT */}
+        <div className="form-group">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={useGroupAccount}
+              onChange={(e) => setUseGroupAccount(e.target.checked)}
+              className="checkbox-input"
+            />
+            <span className="checkbox-text">
+              <Wallet size={16} className="label-icon" />
+              Débiter le compte du groupe
+            </span>
+          </label>
+          <p className="checkbox-description">
+            {useGroupAccount 
+              ? "La somme sera débitée du compte collectif du groupe (nécessite validation)" 
+              : "La somme sera débitée de votre compte personnel (transaction immédiate)"
+            }
+          </p>
         </div>
 
         <button type="submit" className="btn-submit-transaction" disabled={loading}>

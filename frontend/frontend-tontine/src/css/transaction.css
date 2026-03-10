@@ -176,27 +176,38 @@
   font-size: 14px;
 }
 
-/* Bouton Envoyer */
-.btn-submit-transaction {
-  margin-top: 10px;
-  background: #FFD700;
-  color: black;
-  border: none;
-  padding: 16px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 16px;
+/* Checkbox pour le choix de la source du débit */
+.checkbox-label {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
-  transition: all 0.3s;
+  font-size: 13px;
+  font-weight: 600;
+  color: #aaa;
+  margin: 0;
 }
 
-.btn-submit-transaction:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(255, 215, 0, 0.2);
+.checkbox-input {
+  width: 18px;
+  height: 18px;
+  accent-color: #FFD700;
+  cursor: pointer;
+}
+
+.checkbox-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ddd;
+}
+
+.checkbox-description {
+  margin: 8px 0 0 30px;
+  font-size: 12px;
+  color: #777;
+  font-style: italic;
+  line-height: 1.4;
 }
 
 .btn-submit-transaction:disabled {

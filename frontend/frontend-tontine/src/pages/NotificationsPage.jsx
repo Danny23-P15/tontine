@@ -115,14 +115,14 @@ const handleRespond = async (notification, accept) => {
       <div className="notifications-header">
         <h1 className="header-title">Notifications</h1>
         <div className="header-controls">
-          <button 
+          {/* <button 
             className="refresh-button" 
             onClick={handleRefresh}
             disabled={refreshing}
           >
             {refreshing ? "🔄" : "🔄"} 
             {refreshing ? "Actualisation..." : "Actualiser"}
-          </button>
+          </button> */}
 
         </div>
       </div>

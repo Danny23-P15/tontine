@@ -1,0 +1,81 @@
+.app-layout {
+  /* display: flex; */
+  flex-direction: column;
+  /* height: 100vh; */
+  /* background: #f5f6f8; */
+}
+
+.app-header {
+  height: 60px;
+  background-color: #4e4040;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.header-nav {
+  /* Add styles for navigation if needed */
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.header-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.header-nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.header-nav-link.active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.app-main {
+  display: flex;
+  /* flex: 1; */
+  overflow: hidden;
+}
+
+.app-content {
+  flex: 1;
+  /* padding: 24px 24px 24px 0; */
+  /* overflow-y: auto; */
+  /* space the content over to avoid overlapping the fixed sidebar */
+  margin-left: 240px;
+  margin-top: 10px;
+  background-color: black;
+  min-height: calc(100vh - 10px);
+  /* display: flex; */
+  flex-direction: column;
+  left: 0;
+  right: 0;
+  margin-right: 0;
+}

@@ -1,5 +1,5 @@
 .sidebar {
-  width: 260px;
+  width: 220px;
   height: 100vh;
   background-color: rgb(22, 10, 10); /* Noir très profond */
   /* border-right: 1px solid #e6e1e1; */
@@ -12,6 +12,8 @@
   transition: all 0.3s ease;
   position: fixed;
   overflow: auto;
+  padding-top: 60px;
+  left: 0;
 }
 
 /* Logo */

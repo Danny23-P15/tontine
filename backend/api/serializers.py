@@ -8,7 +8,7 @@ class UserMinimalSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "phone_number", "full_name"]
 
-# ✅ JWT avec phone_number
+# JWT avec phone_number
 class PhoneTokenObtainPairSerializer(TokenObtainPairSerializer):
     phone_number = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only=True)
@@ -18,7 +18,7 @@ class PhoneTokenObtainPairSerializer(TokenObtainPairSerializer):
         attrs["username"] = attrs.get("phone_number")
         return super().validate(attrs)
 
-# ✅ Réponse à une validation d'opération
+# Réponse à une validation d'opération
 class RespondOperationSerializer(serializers.Serializer):
     validation_reference = serializers.CharField()
     accept = serializers.BooleanField()

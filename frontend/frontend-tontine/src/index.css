@@ -19,6 +19,8 @@ html, body, #root {
   min-height: 100%;
   width: 100%;
   overflow: hidden;
+  margin: 0;
+  padding: 0
 }
 
 a {
@@ -69,7 +71,7 @@ button:focus-visible {
 
 @media (prefers-color-scheme: light) {
   :root {
-    color: #ffffff;
+    /* color: #ffffff; */
     background-color: #000000;
   }
   a:hover {

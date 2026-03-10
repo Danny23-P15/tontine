@@ -5,11 +5,9 @@ import logo from '../assets/logovalideo.png';
 
 // Importation des icônes
 import { 
-  Hourglass, 
   Users, 
   PlusCircle, 
   FileText, 
-  Bell, 
   LogOut, 
   ShieldCheck,
   DollarSign 
@@ -30,16 +28,9 @@ function Sidebar() {
       <div className="sidebar-top">
         <div className="logo">
             {/* <ShieldCheck size={20} color="#000" strokeWidth={3} /> */}
-                <img src={logo} alt="Logo"  style={{width: "180px", height: "126px"}}/>
         </div>
 
         <nav className="nav">
-          <p className="nav-section-title">Validation</p>
-          <NavLink to="/notifications" className="nav-link">
-            <Hourglass size={18} className="icon" /> 
-            <span className="link-text">Demandes en attente</span>
-          </NavLink>
-
           <p className="nav-section-title">Mes Groupes</p>
           <NavLink to="/groups" className="nav-link">
             <Users size={18} className="icon" /> 
@@ -58,10 +49,6 @@ function Sidebar() {
           <NavLink to="/transactions" className="nav-link">
             <DollarSign size={18} className="icon" /> 
             <span className="link-text">Transactions</span>
-          </NavLink>
-          <NavLink to="/notifications/inbox" className="nav-link">
-            <Bell size={18} className="icon" /> 
-            <span className="link-text">Notifications</span>
           </NavLink>
         </nav>
         <button className="logout-btn" onClick={handleLogout}>

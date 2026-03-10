@@ -1,13 +1,17 @@
 import Sidebar from "./Sidebar";
+import Header from "./Header";
+import "../css/layout.css";
 
 function Layout({ children }) {
   return (
-    <div className="flex min-h-screen bg-black">
-      <Sidebar />
-      
-      <main className="flex-0 ml-[260px] min-h-screen">
-        {children}
-      </main>
+    <div className="app-layout">
+      <Header />
+      <div className="app-main">
+        <Sidebar />
+        <main className="app-content">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
