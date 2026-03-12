@@ -59,18 +59,6 @@ export default function InitiatedOperationsPage() {
 
   return (
   <div className="operations-container">
-    <header className="page-header">
-      <h2>Mes demandes initiées</h2>
-      <div className="header-line"></div>
-      <button 
-        className="refresh-btn"
-        onClick={load}
-        disabled={loading}
-        title="Rafraîchir"
-      >
-        {/* {loading ? "⏳" : "🔄"} */}
-      </button>
-    </header>
 
     <div className="filter-buttons">
       <button 

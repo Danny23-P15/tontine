@@ -1,7 +1,7 @@
 /* Conteneur principal - Look Dark Premium */
 .notifications-container {
   min-height: 100vh;
-  background: radial-gradient(circle at top left, #1a1a1a 0%, #0a0a0a 100%);
+  background: #0f0f0f;
   padding: 30px;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   color: #e0e0e0;

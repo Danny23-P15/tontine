@@ -262,6 +262,8 @@ class RespondOperationAPIView(APIView):
                 {"message": "Opération invalide"},
                 status=400
             )
+        
+        
 
         status_code = 200 if success else 400
         return Response({"message": message}, status=status_code)

@@ -3,11 +3,12 @@
   flex-direction: column;
   /* height: 100vh; */
   /* background: #f5f6f8; */
+  left: 0;
 }
 
 .app-header {
   height: 60px;
-  background-color: #4e4040;
+  background-color: #0f0f0f;
   color: white;
   display: flex;
   align-items: center;
@@ -15,9 +16,10 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   position: fixed;
   top: 0;
-  left: 0;
+  left: 240px; /* Décalé de la largeur du sidebar */
   right: 0;
   z-index: 1000;
+  border-bottom: 1px solid #333;
 }
 
 .header-content {
@@ -37,6 +39,7 @@
     display: flex;
     gap: 20px;
     align-items: center;
+    margin-left: auto;
 }
 
 .header-nav-link {
@@ -59,23 +62,27 @@
 }
 
 .app-main {
-  display: flex;
+  /* display: flex; */
   /* flex: 1; */
   overflow: hidden;
 }
 
 .app-content {
   flex: 1;
-  /* padding: 24px 24px 24px 0; */
+  padding: 24px 24px 24px 24px;
   /* overflow-y: auto; */
   /* space the content over to avoid overlapping the fixed sidebar */
-  margin-left: 240px;
+  margin-left: 210px;
+  /* margin-right: 10px; */
   margin-top: 10px;
-  background-color: black;
-  min-height: calc(100vh - 10px);
+  background-color: #0f0f0f;
+  /* min-height: calc(100vh - 10px); */
   /* display: flex; */
   flex-direction: column;
-  left: 0;
+  left: -1;
   right: 0;
-  margin-right: 0;
+  /* margin-right: 0; */
+  /* overflow: auto; */
+  width: auto;
+  /* padding: 20px; */
 }

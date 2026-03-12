@@ -28,6 +28,7 @@ function Sidebar() {
       <div className="sidebar-top">
         <div className="logo">
             {/* <ShieldCheck size={20} color="#000" strokeWidth={3} /> */}
+            <img src={logo} alt="Valid'eo" className="app-logo" style={{width: "120px", height: "60px"}}/>
         </div>
 
         <nav className="nav">

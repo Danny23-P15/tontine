@@ -9,7 +9,6 @@ function Header() {
   return (
     <header className="app-header">
       <div className="header-content">
-        <img src={logo} alt="Valid'eo" className="app-logo" style={{width: "120px", height: "60px"}}/>
         <nav className="header-nav">
           <NavLink to="/notifications" className="header-nav-link">
             <Hourglass size={18} className="icon" /> 

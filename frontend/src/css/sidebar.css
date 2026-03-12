@@ -1,19 +1,18 @@
 .sidebar {
-  width: 220px;
-  height: 100vh;
-  background-color: rgb(22, 10, 10); /* Noir très profond */
-  /* border-right: 1px solid #e6e1e1; */
+  width: 210px;
+  height: calc(100vh - 60px); /* Ajustement pour tenir compte du header */
+  background-color: rgb(28, 28, 28);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  font-family: sans-serif;
   padding: 30px 15px;
-  position: sticky;
-  top: -4;
   transition: all 0.3s ease;
   position: fixed;
   overflow: auto;
-  padding-top: 60px;
   left: 0;
+  top: 0; /* Positionné juste en dessous du header */
+  /* right: 0; Supprimé car le sidebar ne doit pas prendre toute la largeur */
 }
 
 /* Logo */
@@ -22,26 +21,6 @@
   align-items: center;
   gap: 12px;
   padding: 0 15px 40px;
-}
-
-.logo-icon {
-  background-color: #FFD700;
-  color: #000;
-  font-weight: 900;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  font-size: 20px;
-}
-
-.logo-text {
-  color: #fff;
-  font-size: 22px;
-  letter-spacing: 1px;
-  margin: 0;
 }
 
 /* Header utilisateur */
@@ -184,13 +163,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 15px;
-  color: #a0a0a0;
+  padding: 10px;
+  color: #fcfcfc;
   text-decoration: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 500;
   transition: all 0.2s ease;
+  font-family: sans-serif;
 }
 
 .nav-link:hover {
