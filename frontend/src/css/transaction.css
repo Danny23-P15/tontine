@@ -130,13 +130,13 @@
 }
 
 .premium-input {
-  background: #0A0A0A;
+  background: #0f0f0f;
   border: 1px solid #222;
   border-radius: 12px;
   padding: 14px 16px;
-  color: white;
   font-size: 15px;
   transition: all 0.3s;
+  color: #FFD700;
 }
 
 .premium-input:focus {

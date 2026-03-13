@@ -257,8 +257,8 @@
 .initiator-restriction {
   text-align: center;
   padding: 60px 30px;
-  background: linear-gradient(135deg, rgba(255, 204, 0, 0.1), rgba(255, 102, 0, 0.1));
-  border: 2px dashed #ffcc00;
+  /* background: linear-gradient(135deg, rgba(255, 204, 0, 0.1), rgba(255, 102, 0, 0.1)); */
+  /* border: 2px dashed #ffcc00; */
   border-radius: 12px;
   color: #fff;
 }

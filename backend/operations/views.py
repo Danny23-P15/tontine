@@ -25,12 +25,15 @@ class PendingOperationsView(APIView):
                 status=ValidationStatus.PENDING,
                 operation__status=OperationStatus.PENDING
             )
-            .exclude(
-                operation__expires_at__lt=timezone.now()
-            )
         )
 
-        operations = [v.operation for v in validations]
+        # Check for expired operations and update their status
+        operations = []
+        for validation in validations:
+            operation = validation.operation
+            operation.check_and_expire()  # This will update status if expired
+            if operation.status == OperationStatus.PENDING and operation.expires_at > timezone.now():
+                operations.append(operation)
 
         serializer = PendingOperationSerializer(
             operations,

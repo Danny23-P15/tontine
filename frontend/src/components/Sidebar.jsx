@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { useState, useEffect } from "react";
 import logo from '../assets/logovalideo.png';
 // import '../css/Sidebar.css';
 
@@ -12,11 +13,26 @@ import {
   ShieldCheck,
   DollarSign 
 } from "lucide-react";
+import axios from "axios";
 import "../css/Sidebar.css";
 
 function Sidebar() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const [groupId, setGroupId] = useState(null);
+
+  useEffect(() => {
+    // Récupérer le premier groupe de l'utilisateur
+    axios.get("/api/groups/my-groups/")
+      .then(response => {
+        if (response.data && response.data.length > 0) {
+          setGroupId(response.data[0].id);
+        }
+      })
+      .catch(err => {
+        console.error("Erreur lors de la récupération des groupes", err);
+      });
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -51,6 +67,10 @@ function Sidebar() {
             <DollarSign size={18} className="icon" /> 
             <span className="link-text">Transactions</span>
           </NavLink>
+           <NavLink to={groupId ? `/group/${groupId}/balance` : "#"} className="nav-link">
+             <ShieldCheck size={18} className="icon" />
+             <span className="link-text">Solde du groupe</span>
+           </NavLink>
         </nav>
         <button className="logout-btn" onClick={handleLogout}>
           <LogOut size={18} className="icon" />

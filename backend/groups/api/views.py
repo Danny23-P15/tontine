@@ -136,7 +136,15 @@ class PendingOperationsAPIView(APIView):
             operation__status=OperationStatus.PENDING
         )
 
-        serializer = PendingOperationSerializer(validations, many=True)
+        # Check for expired operations
+        valid_validations = []
+        for validation in validations:
+            operation = validation.operation
+            operation.check_and_expire()  # Update status if expired
+            if operation.status == OperationStatus.PENDING:
+                valid_validations.append(validation)
+
+        serializer = PendingOperationSerializer(valid_validations, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
     

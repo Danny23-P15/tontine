@@ -170,6 +170,7 @@ class OperationStatus(models.TextChoices):
     REJECTED = "REJECTED", "Rejected"
     CANCELLED = "CANCELLED", "Cancelled"
     COMPLETED = "COMPLETED", "Completed"
+    EXPIRED = "EXPIRED", "Expired"
 
 class OperationType(models.TextChoices):
     ADD_VALIDATOR = "ADD_VALIDATOR", "Add validator"
@@ -219,6 +220,15 @@ class Operation(models.Model):
     expires_at = models.DateTimeField()
     resolved_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
+    
+    def check_and_expire(self):
+        """Check if operation has expired and update status if needed."""
+        if (self.status in [OperationStatus.PENDING, OperationStatus.APPROVED] and 
+            self.expires_at <= timezone.now()):
+            self.status = OperationStatus.EXPIRED
+            self.save(update_fields=["status"])
+            return True
+        return False
     
     def mark_completed(self):
         if self.status == OperationStatus.COMPLETED:

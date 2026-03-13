@@ -1,3 +1,12 @@
+import GroupBalancePage from "./pages/GroupBalancePage";
+          <Route
+            path="/group/:groupId/balance"
+            element={
+              <PrivateRoute>
+                <GroupBalancePage />
+              </PrivateRoute>
+            }
+          />
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";  // Importez AuthProvider
 import LoginPage from "./pages/LoginPage";

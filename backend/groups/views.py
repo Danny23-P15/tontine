@@ -12,7 +12,7 @@ from django.utils import timezone
 from core.models import User
 from groups.models import (
     Operation, OperationStatus, OperationType, Transaction,
-    ValidationGroup, ValidationStatus, TemporaryGroupCreation,
+    ValidationGroup, ValidationStatus, TemporaryGroupCreation, Account,
 )
 from groups.serializers import (
     AddValidatorSerializer, CreateGroupRequestSerializer,
@@ -314,6 +314,9 @@ class MyInitiatedOperationsAPIView(APIView):
         data = []
 
         for op in operations:
+            # Check if operation has expired
+            op.check_and_expire()
+            
             validations = op.validations.all()
 
             total = validations.count()
@@ -424,3 +427,30 @@ class RequestTransactionAPIView(APIView):
         return Response({
             "reference": operation.reference
         })
+
+class GroupBalanceAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, group_id):
+        group = get_object_or_404(ValidationGroup, id=group_id, is_active=True)
+        
+        # Vérifier que l'utilisateur est membre du groupe
+        is_member = group.memberships.filter(
+            phone_number=request.user.phone_number,
+            left_at__isnull=True
+        ).exists()
+        
+        if not is_member:
+            return Response(
+                {"detail": "Vous n'êtes pas membre de ce groupe"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Récupérer le compte du groupe
+        account = get_object_or_404(Account, owner_group=group, owner_type="GROUP")
+        
+        return Response({
+            "group_id": group.id,
+            "group_name": group.group_name,
+            "balance": account.balance
+        }, status=status.HTTP_200_OK)

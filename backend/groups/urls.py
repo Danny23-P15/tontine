@@ -16,5 +16,6 @@ urlpatterns = [
     path("operations/initiated/", MyInitiatedOperationsAPIView.as_view()),
     path("operations/cancel/", CancelOperationAPIView.as_view()),
     path("groups/<int:group_id>/transactions/request/", RequestTransactionAPIView.as_view(), name="request-transaction"),
+    path("groups/<int:group_id>/balance/", GroupBalanceAPIView.as_view(), name="group-balance"),
 
 ]
