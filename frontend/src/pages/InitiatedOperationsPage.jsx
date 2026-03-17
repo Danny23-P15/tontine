@@ -7,6 +7,8 @@ export default function InitiatedOperationsPage() {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [cancelModal, setCancelModal] = useState({ open: false, reference: null });
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -32,20 +34,46 @@ export default function InitiatedOperationsPage() {
   };
 
   const getFilteredOps = () => {
-    if (filter === "all") return ops;
-    return ops.filter(op => {
-      if (filter === "expired") {
-        // Une opération est expirée si :
-        // 1. Son statut est EXPIRED
-        // 2. OU elle est PENDING mais sa date d'expiration est passée
-        return op.status === "EXPIRED" || 
-               (op.status === "PENDING" && op.expires_at && new Date(op.expires_at) < new Date());
-      }
-      if (filter === "cancelled") {
-        return op.status === "CANCELLED";
-      }
-      return op.status === filter.toUpperCase();
-    });
+    let filtered = ops;
+
+    // Filtrer par statut
+    if (filter === "all") {
+      filtered = ops;
+    } else {
+      filtered = ops.filter(op => {
+        if (filter === "expired") {
+          return op.status === "EXPIRED" || 
+                 (op.status === "PENDING" && op.expires_at && new Date(op.expires_at) < new Date());
+        }
+        if (filter === "cancelled") {
+          return op.status === "CANCELLED";
+        }
+        return op.status === filter.toUpperCase();
+      });
+    }
+
+    // Filtrer par dates
+    if (startDate || endDate) {
+      filtered = filtered.filter(op => {
+        const createdDate = new Date(op.created_at);
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (createdDate < start) return false;
+        }
+        
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (createdDate > end) return false;
+        }
+        
+        return true;
+      });
+    }
+
+    return filtered;
   };
 
   const getStatusColor = (status) => {
@@ -88,6 +116,40 @@ export default function InitiatedOperationsPage() {
 
   return (
     <div className="operations-container">
+
+      <div className="date-filter-section">
+        <div className="date-filter-group">
+          <label htmlFor="start-date">Date de début</label>
+          <input
+            id="start-date"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="date-input"
+          />
+        </div>
+        <div className="date-filter-group">
+          <label htmlFor="end-date">Date de fin</label>
+          <input
+            id="end-date"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="date-input"
+          />
+        </div>
+        {(startDate || endDate) && (
+          <button
+            className="reset-filter-btn"
+            onClick={() => {
+              setStartDate("");
+              setEndDate("");
+            }}
+          >
+            Réinitialiser les dates
+          </button>
+        )}
+      </div>
 
       <div className="filter-buttons">
         <button 
@@ -186,7 +248,7 @@ export default function InitiatedOperationsPage() {
 
                 {/* MODALE D'ANNULATION SPÉCIFIQUE */}
                 {cancelModal.open && cancelModal.reference === op.reference && (
-                  <div className="modal-overlay">
+                  <div className="validator-overlay">
                     <div className="modal">
                       <h4>Annuler l’opération</h4>
                       <p>Voulez-vous vraiment annuler cette opération ?</p>

@@ -10,7 +10,11 @@ from django.utils import timezone
 import uuid
 from notifications.services.operation_notifications import notify_operation_status
 from notifications.constants import OperationEvent
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from notifications.services.email_service import send_templated_email
 
+User = get_user_model()
 
 from groups.models import (
     ValidationGroup,
@@ -21,7 +25,6 @@ from groups.models import (
     OperationType,
     OperationStatus,
     OperationValidation,
-    TemporaryAddValidator,
     Transaction
 )
 from groups.utils import generate_reference  # on va la créer juste après
@@ -147,7 +150,30 @@ def request_add_validator(
         event=OperationEvent.ADD_VALIDATOR_REQUESTED,
         actor_phone=initiator_phone
     )
+    # 📧 Récupérer les emails des validateurs
+    validator_phones = [v.phone_number for v in validators]
+    
+    if validator_phones:
+        users = User.objects.filter(phone_number__in=validator_phones)
+        emails = [u.email for u in users if u.email]
 
+        # 📧 Contexte du template
+        if emails:
+            context = {
+                "initiator": initiator_phone,
+                "validator_phone": validator_phone,
+                "validator_cin": validator_cin,
+                "group_name": group.group_name,
+                "reference": operation.reference,
+            }
+
+            # 📧 Envoi après commit
+            transaction.on_commit(lambda: send_templated_email(
+                subject="Nouvelle demande d'ajout de validateur",
+                template_name="validator_addition_requested.html",
+                context=context,
+                recipients=emails
+            ))
     return True, "Demande d’ajout de validateur envoyée"
 
 
@@ -209,6 +235,30 @@ def request_remove_validator(
             event=OperationEvent.REMOVE_VALIDATOR_REQUESTED,
             actor_phone=initiator_phone
         )
+
+        # 📧 Récupérer les emails des validateurs
+        validator_phones = [v.phone_number for v in validators]
+        
+        if validator_phones:
+            users = User.objects.filter(phone_number__in=validator_phones)
+            emails = [u.email for u in users if u.email]
+
+            # 📧 Contexte du template
+            if emails:
+                context = {
+                    "initiator": initiator_phone,
+                    "validator_to_remove": validator_phone,
+                    "group_name": group.group_name,
+                    "reference": operation.reference,
+                }
+
+                # 📧 Envoi après commit
+                transaction.on_commit(lambda: send_templated_email(
+                    subject="Demande de suppression de validateur",
+                    template_name="validator_removal_requested.html",
+                    context=context,
+                    recipients=emails
+                ))
 
     return True, "Demande de suppression de validateur envoyée"
 
@@ -300,6 +350,30 @@ def create_delete_group_operation(
             validator_phone_number=v.phone_number,
             validation_reference=f"VAL-{uuid.uuid4().hex[:8]}"
         )
+
+    # 📧 Envoi email aux validateurs
+    validator_phones = [v.phone_number for v in validators]
+
+    if validator_phones:
+        users = User.objects.filter(phone_number__in=validator_phones)
+        emails = [u.email for u in users if u.email]
+
+        if emails:
+            context = {
+                "initiator": initiator_phone,
+                "validator_phone": validator_phones,
+                "group_name": group.group_name,
+                "reference": operation.reference,
+            }
+
+            send_templated_email(
+                subject="Demande de suppression de validateur",
+                template_name="validator_removal_requested.html",
+                context=context,
+                recipients=emails
+            )
+
+    return True, "Demande de suppression envoyée aux validateurs"
 
     return True, operation
 
@@ -454,5 +528,28 @@ def request_transaction(
             event=OperationEvent.TRANSACTION_REQUESTED,
             actor_phone=initiator_phone
         )
+
+                # 📧 Récupérer les emails des validateurs
+        validator_phones = [v.phone_number for v in validators]
+
+        users = User.objects.filter(phone_number__in=validator_phones)
+        emails = [u.email for u in users if u.email]
+
+        # 📧 Contexte du template
+        context = {
+            "initiator": initiator_phone,
+            "recipient": recipient_phone,
+            "amount": str(amount),
+            "reference": operation.reference,
+        }
+
+        # 📧 Envoi après commit
+        transaction.on_commit(lambda: send_templated_email(
+            subject="Nouvelle transaction à valider",
+            template_name="operation_created.html",
+            context=context,
+            recipients=emails
+        ))
+
 
     return True, "Demande de transaction envoyée pour validation"

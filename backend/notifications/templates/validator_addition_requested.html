@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demande d'ajout de validateur</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f7; color: #333;">
+    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        
+        <!-- HEADER -->
+        <tr>
+            <td style="padding: 30px 40px; background-color: #7c3aed; text-align: center;">
+                <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 600;">
+                    Demande d'ajout de validateur
+                </h1>
+            </td>
+        </tr>
+
+        <!-- BODY -->
+        <tr>
+            <td style="padding: 40px;">
+                <p style="margin-top: 0; margin-bottom: 24px; font-size: 16px; line-height: 1.6;">
+                    Une nouvelle demande d'ajout de validateur a été soumise dans votre groupe. 
+                    Votre validation est requise.
+                </p>
+
+                <!-- DETAILS TABLE -->
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 10px 0; border-bottom: 1px solid #edf2f7; font-weight: bold; width: 160px; color: #64748b;">Groupe :</td>
+                        <td style="padding: 10px 0; border-bottom: 1px solid #edf2f7;">{{ group_name }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 0; border-bottom: 1px solid #edf2f7; font-weight: bold; color: #64748b;">Initiateur :</td>
+                        <td style="padding: 10px 0; border-bottom: 1px solid #edf2f7;">{{ initiator }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 0; border-bottom: 1px solid #edf2f7; font-weight: bold; color: #64748b;">Nouveau validateur :</td>
+                        <td style="padding: 10px 0; border-bottom: 1px solid #edf2f7;">{{ validator_phone }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 0; border-bottom: 1px solid #edf2f7; font-weight: bold; color: #64748b;">CIN du validateur :</td>
+                        <td style="padding: 10px 0; border-bottom: 1px solid #edf2f7;">{{ validator_cin }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 0; font-weight: bold; color: #64748b;">Référence :</td>
+                        <td style="padding: 10px 0; font-family: monospace; color: #7c3aed; font-weight: bold;">{{ reference }}</td>
+                    </tr>
+                </table>
+
+                <!-- ALERT BOX -->
+                <div style="background-color: #faf5ff; border-left: 4px solid #7c3aed; padding: 16px 20px; border-radius: 4px; margin-bottom: 30px;">
+                    <p style="margin: 0; font-size: 14px; color: #6d28d9; line-height: 1.6;">
+                        ⚠️ Cette demande expire dans <strong>48 heures</strong>. 
+                        Connectez-vous pour approuver ou rejeter cette demande.
+                    </p>
+                </div>
+
+                <!-- CTA BUTTON -->
+                <div style="text-align: center; margin-top: 40px;">
+                    <a href="#" style="background-color: #7c3aed; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 15px;">
+                        Valider la demande
+                    </a>
+                </div>
+            </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+            <td style="padding: 20px; text-align: center; background-color: #f8fafc; font-size: 12px; color: #64748b;">
+                Référence opération : <strong>{{ reference }}</strong><br><br>
+                Ceci est une notification automatique. Veuillez ne pas répondre à cet e-mail.
+            </td>
+        </tr>
+
+    </table>
+</body>
+</html>
