@@ -20,6 +20,7 @@ function GroupDetailPage() {
     return localStorage.getItem("access_token")
   };
 
+
   useEffect(() => {
     const loadGroup = async () => {
       try {

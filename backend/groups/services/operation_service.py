@@ -351,7 +351,7 @@ def create_delete_group_operation(
             validation_reference=f"VAL-{uuid.uuid4().hex[:8]}"
         )
 
-    # 📧 Envoi email aux validateurs
+    # Envoi email aux validateurs
     validator_phones = [v.phone_number for v in validators]
 
     if validator_phones:

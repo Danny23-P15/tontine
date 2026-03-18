@@ -119,7 +119,7 @@ export default function InitiatedOperationsPage() {
 
       <div className="date-filter-section">
         <div className="date-filter-group">
-          <label htmlFor="start-date">Date de début</label>
+          <label htmlFor="start-date">Initier le:</label>
           <input
             id="start-date"
             type="date"

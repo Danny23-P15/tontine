@@ -320,7 +320,6 @@
   text-align: center;
   padding: 100px;
   color: var(--text-gray);
-  border: 2px dashed var(--dark-border);
   border-radius: 20px;
   background-color: #0f0f0f;
 }

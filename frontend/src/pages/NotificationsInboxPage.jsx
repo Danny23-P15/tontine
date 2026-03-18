@@ -25,7 +25,7 @@ function NotificationsInboxPage() {
   if (loading) return <p>Chargement...</p>;
 
   return (
-    <div className="notifications-container">
+    <div className="validator-modaln">
       <div className="notifications-header">
         <h1 className="header-title">Historique des notifications</h1>
       </div>

@@ -123,7 +123,6 @@
   padding: 80px 40px;
   background: #181818;
   border-radius: 20px;
-  border: 1px dashed #444;
   max-width: 550px;
   margin: 60px auto;
 }
@@ -185,6 +184,7 @@
   margin-bottom: 10px;
   border-radius: 6px;
   box-shadow: #1e1e1e inset;
+  color: white;
 }
 
 .notification-badge {
@@ -208,4 +208,8 @@
 
 .notification-card small {
   color: #777;
+}
+
+.validator-modaln {
+  background: #0f0f0f;top: 400px; padding: 30px; border-radius: 16px; border: 1px solid #FFD700; width: 400px; height: 300px; float: right; overflow: auto;
 }
