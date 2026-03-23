@@ -1,11 +1,14 @@
 import React from 'react';
 import { NavLink } from "react-router-dom";
 import { Hourglass, Bell } from "lucide-react";
+import { useAuth } from '../auth/AuthContext';
 import '../css/layout.css';
 import logo from '../assets/logovalideo.png';
 
 
 function Header() {
+  const { user } = useAuth();
+
   return (
     <header className="app-header">
       <div className="header-content">
@@ -19,6 +22,11 @@ function Header() {
             <span className="link-text"></span>
           </NavLink>
         </nav>
+        {user && (
+          <div className="user-info">
+            <span className="user-id">#{user.id}</span>
+          </div>
+        )}
       </div>
     </header>
   );

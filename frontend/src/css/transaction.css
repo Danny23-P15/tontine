@@ -215,3 +215,55 @@
   cursor: not-allowed;
   transform: none;
 }
+
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.transaction-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: 0.2s;
+}
+
+.transaction-card:hover {
+  transform: translateY(-2px);
+}
+
+.tx-main {
+  font-size: 18px;
+  font-weight: bold;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tx-amount {
+  color: #007bff;
+}
+
+.tx-arrow {
+  color: #999;
+}
+
+.tx-recipient {
+  font-weight: 500;
+}
+
+.tx-details {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  justify-content: space-between;
+}
+
+.tx-status {
+  margin-top: 10px;
+  font-weight: bold;
+}

@@ -12,7 +12,7 @@ from django.utils import timezone
 from core.models import User
 from groups.models import (
     Operation, OperationStatus, OperationType, Transaction,
-    ValidationGroup, ValidationStatus, TemporaryGroupCreation, Account,
+    ValidationGroup, ValidationStatus, TemporaryGroupCreation, Account, GroupMembership
 )
 from groups.serializers import (
     AddValidatorSerializer, CreateGroupRequestSerializer,
@@ -450,7 +450,49 @@ class GroupBalanceAPIView(APIView):
         account = get_object_or_404(Account, owner_group=group, owner_type="GROUP")
         
         return Response({
-            "group_id": group.id,
-            "group_name": group.group_name,
-            "balance": account.balance
-        }, status=status.HTTP_200_OK)
+            "balance": str(account.balance),
+            "group_name": group.group_name
+        })
+
+class GroupTransactionsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, group_id):
+
+        # 1️⃣ Vérifier groupe
+        group = get_object_or_404(ValidationGroup, id=group_id)
+
+        # 2️⃣ Vérifier appartenance
+        is_member = GroupMembership.objects.filter(
+            group=group,
+            phone_number=request.user.phone_number,
+            left_at__isnull=True
+        ).exists()
+
+        if not is_member:
+            return Response(
+                {"detail": "Accès refusé"},
+                status=403
+            )
+
+        # 3️⃣ Récupérer transactions
+        transactions = Transaction.objects.select_related("operation").filter(
+            operation__group=group
+        ).order_by("-operation__created_at")
+
+        # 4️⃣ Serializer manuel (simple)
+        data = []
+        for tx in transactions:
+            data.append({
+                "reference": tx.reference,
+                "amount": str(tx.amount),
+                "recipient": tx.recipient_phone_number,
+                "initiator": tx.operation.initiator_phone_number,
+                "status": tx.operation.status,
+                "created_at": tx.operation.created_at,
+            })
+
+        return Response({
+            "count": len(data),
+            "results": data
+        })

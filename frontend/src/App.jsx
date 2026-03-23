@@ -1,12 +1,3 @@
-import GroupBalancePage from "./pages/GroupBalancePage";
-          <Route
-            path="/group/:groupId/balance"
-            element={
-              <PrivateRoute>
-                <GroupBalancePage />
-              </PrivateRoute>
-            }
-          />
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";  // Importez AuthProvider
 import LoginPage from "./pages/LoginPage";
@@ -20,6 +11,8 @@ import MesGroupesPage from "./pages/MyGroupsPage";
 import GroupDetailPage from "./pages/GroupeDetailPage";
 import InitiatedOperationsPage from "./pages/InitiatedOperationsPage";
 import TransactionsPage from "./pages/TransactionsPage";
+import GroupBalancePage from "./pages/GroupBalancePage";
+import GroupTransactionsPage from "./pages/GroupTransactionsPage";
 
 
 function App() {
@@ -65,7 +58,27 @@ function App() {
             }
           />
 
-          
+          <Route
+            path="/groups/:groupId/balance"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <GroupBalancePage />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/groups/:groupId/transactions"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <GroupTransactionsPage />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
 
           <Route
             path="/groups/create"

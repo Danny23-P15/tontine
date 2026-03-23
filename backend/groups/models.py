@@ -445,3 +445,5 @@ class TemporaryAddValidator(models.Model):
 
     def has_expired(self) -> bool:
         return self.expires_at < timezone.now()
+
+# //Transaction

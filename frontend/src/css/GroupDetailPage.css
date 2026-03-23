@@ -152,3 +152,25 @@
 .btn-cancel {
   background: transparent; color: white; border: none; margin-left: 10px; cursor: pointer;
 }
+
+.btn-view-balance {
+  width: 100%;
+  background: #FFD700;
+  color: #000;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background 0.3s;
+}
+
+.btn-view-balance:hover {
+  background: #ffd700cc;
+}
+
+.btn-view-balance:active {
+  transform: scale(0.98);
+}

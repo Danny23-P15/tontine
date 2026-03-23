@@ -27,10 +27,13 @@ function Sidebar() {
       .then(response => {
         if (response.data && response.data.length > 0) {
           setGroupId(response.data[0].id);
+        } else {
+          console.warn("Aucun groupe trouvé pour l'utilisateur");
         }
       })
       .catch(err => {
         console.error("Erreur lors de la récupération des groupes", err);
+        // Fallback: définir un groupId par défaut ou gérer autrement
       });
   }, []);
 
@@ -59,6 +62,10 @@ function Sidebar() {
           </NavLink>
 
           <p className="nav-section-title">Historique</p>
+          <NavLink to={groupId ? `/groups/${groupId}/transactions` : `/transactions`} className="nav-link">
+            <DollarSign size={18} className="icon" /> 
+            <span className="link-text">Historique de transaction</span>
+          </NavLink>
           <NavLink to="/operations/initiated" className="nav-link">
             <FileText size={18} className="icon" /> 
             <span className="link-text">Mes demandes initiées</span>
@@ -67,10 +74,10 @@ function Sidebar() {
             <DollarSign size={18} className="icon" /> 
             <span className="link-text">Transactions</span>
           </NavLink>
-           <NavLink to={groupId ? `/group/${groupId}/balance` : "#"} className="nav-link">
+           {/* <NavLink to={`/groups/${group.id}/balance`} className="nav-link">
              <ShieldCheck size={18} className="icon" />
              <span className="link-text">Solde du groupe</span>
-           </NavLink>
+           </NavLink> */}
         </nav>
         <button className="logout-btn" onClick={handleLogout}>
           <LogOut size={18} className="icon" />

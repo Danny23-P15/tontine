@@ -86,3 +86,19 @@
   width: auto;
   /* padding: 20px; */
 }
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 20px;
+  padding: 8px 16px;
+  background-color: white;
+  border-radius: 4px;
+}
+
+.user-id {
+  font-size: 0.9rem;
+  color: #fff;
+  font-weight: 500;
+}

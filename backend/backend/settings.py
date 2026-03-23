@@ -201,4 +201,10 @@ EMAIL_HOST_PASSWORD = 'xlzv gxbt hmne juup'
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-# TEMPLATE
+ASGI_APPLICATION = 'backend.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        "BACKEND": 'channels.layers.InMemoryChannelLayer',
+    },
+}

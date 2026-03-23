@@ -32,7 +32,6 @@ function NotificationsInboxPage() {
 
       {notifications.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📭</div>
           <h2 className="empty-title">Aucune notification</h2>
           <p className="empty-subtitle">Vous n'avez pas de notifications dans l'historique.</p>
         </div>
