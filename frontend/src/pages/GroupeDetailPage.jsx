@@ -15,6 +15,7 @@ function GroupDetailPage() {
   const [selectedUser, setSelectedUser] = useState("");
   const [allUsers, setAllUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  
 
   // 👇 Nouveaux états pour le solde inline
   const [showBalance, setShowBalance] = useState(false);
@@ -259,48 +260,72 @@ function GroupDetailPage() {
               ? "⏳ Chargement..."
               : showBalance
               ? " Masquer le solde"
-              : "💰 Voir le solde du groupe"}
+              : " Voir le solde du groupe"}
+          </button>
+
+          {/* 👇 Bouton voir les transactions */}
+          <button
+            className="btn-view-balance"
+            onClick={() => navigate(`/groups/${group.id}/transactions`)}
+          >
+            📊 Voir les transactions
           </button>
 
           {/* 👇 Bloc solde inline */}
-          {showBalance && (
-            <div className="balance-inline-card">
-              {balanceError ? (
-                <p className="balance-error">❌ {balanceError}</p>
-              ) : balance ? (
-                <>
-                  <div className="balance-row">
-                    <span className="balance-label">Solde total: </span>
-                    <span className="balance-amount">
-                      {Number(balance.total_balance ?? balance.balance ?? 0).toLocaleString("fr-FR")}{" "}
-                      <small>{balance.currency || "Ar"}</small>
-                    </span>
-                  </div>
-                  {balance.available_balance !== undefined && (
-                    <div className="balance-row">
-                      <span className="balance-label">Disponible</span>
-                      <span className="balance-amount available">
-                        {Number(balance.available_balance).toLocaleString("fr-FR")}{" "}
-                        <small>{balance.currency || "Ar"}</small>
-                      </span>
-                    </div>
-                  )}
-                  {balance.pending_balance !== undefined && (
-                    <div className="balance-row">
-                      <span className="balance-label">En attente</span>
-                      <span className="balance-amount pending">
-                        {Number(balance.pending_balance).toLocaleString("fr-FR")}{" "}
-                        <small>{balance.currency || "Ar"}</small>
-                      </span>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="balance-empty">Aucune donnée disponible</p>
-              )}
-            </div>
-          )}
+        {/* Modal d'affichage du solde */}
+        {showBalance && (
+          <div className="modal-overlay" onClick={() => setShowBalance(false)}>
+            <div className="modal balance-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <span className="modal-icon">💰</span>
+                <h4>État du compte</h4>
+              </div>
 
+              <div className="balance-content">
+                {balanceError ? (
+                  <div className="balance-error-state">
+                    <p>❌ {balanceError}</p>
+                  </div>
+                ) : balance ? (
+                  <div className="balance-details">
+                    <div className="balance-main">
+                      <span className="label">Solde Total</span>
+                      <div className="amount-wrapper">
+                        <span className="amount">
+                          {Number(balance.total_balance ?? balance.balance ?? 0).toLocaleString("fr-FR")}
+                        </span>
+                        <span className="currency">{balance.currency || "Ar"}</span>
+                      </div>
+                    </div>
+
+                    <div className="balance-split">
+                      <div className="split-item">
+                        <span className="label">Disponible</span>
+                        <span className="value available">
+                          {Number(balance.available_balance || 0).toLocaleString("fr-FR")} {balance.currency || "Ar"}
+                        </span>
+                      </div>
+                      <div className="split-item">
+                        <span className="label">En attente</span>
+                        <span className="value pending">
+                          {Number(balance.pending_balance || 0).toLocaleString("fr-FR")} {balance.currency || "Ar"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="balance-empty">Aucune donnée disponible</p>
+                )}
+              </div>
+
+              <div className="modal-actions">
+                <button className="btn-close-modal" onClick={() => setShowBalance(false)}>
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
           {group.me?.role === "INITIATOR" &&
             !group.pending_deletion &&
             !group.has_pending_operations && (

@@ -12,7 +12,7 @@
   overflow: auto;
   left: 0;
   top: 0; /* Positionné juste en dessous du header */
-  /* right: 0; Supprimé car le sidebar ne doit pas prendre toute la largeur */
+  font-family: sans-serif;
 }
 
 /* Logo */

@@ -114,9 +114,9 @@ export default function InitiatedOperationsPage() {
     return ops.filter(op => op.status === status.toUpperCase()).length;
   };
 
-  return (
+return (
     <div className="operations-container">
-
+      {/* --- Section Filtres Dates --- */}
       <div className="date-filter-section">
         <div className="date-filter-group">
           <label htmlFor="start-date">Initier le:</label>
@@ -151,6 +151,7 @@ export default function InitiatedOperationsPage() {
         )}
       </div>
 
+      {/* --- Section Boutons de Statut --- */}
       <div className="filter-buttons">
         <button 
           className={`filter-btn ${filter === "all" ? "active" : ""}`}
@@ -158,38 +159,10 @@ export default function InitiatedOperationsPage() {
         >
           Tous ({ops.length})
         </button>
-        <button 
-          className={`filter-btn ${filter === "pending" ? "active" : ""}`}
-          onClick={() => setFilter("pending")}
-        >
-          En attente ({getCountByStatus("pending")})
-        </button>
-        <button 
-          className={`filter-btn ${filter === "approved" ? "active" : ""}`}
-          onClick={() => setFilter("approved")}
-        >
-          Approuvé ({getCountByStatus("approved")})
-        </button>
-        <button 
-          className={`filter-btn ${filter === "rejected" ? "active" : ""}`}
-          onClick={() => setFilter("rejected")}
-        >
-          Rejeté ({getCountByStatus("rejected")})
-        </button>
-        <button 
-          className={`filter-btn ${filter === "expired" ? "active" : ""}`}
-          onClick={() => setFilter("expired")}
-        >
-          Expiré ({getCountByStatus("expired")})
-        </button>
-        <button 
-          className={`filter-btn ${filter === "cancelled" ? "active" : ""}`}
-          onClick={() => setFilter("cancelled")}
-        >
-          Annulé ({getCountByStatus("cancelled")})
-        </button>
+        {/* ... (garder tes autres boutons identiques) ... */}
       </div>
 
+      {/* --- Grille des Opérations --- */}
       {getFilteredOps().length === 0 ? (
         <div className="empty-state">
           <p>Aucune opération à afficher</p>
@@ -245,36 +218,47 @@ export default function InitiatedOperationsPage() {
                     </button>
                   )}
                 </div>
-
-                {/* MODALE D'ANNULATION SPÉCIFIQUE */}
-                {cancelModal.open && cancelModal.reference === op.reference && (
-                  <div className="validator-overlay">
-                    <div className="modal">
-                      <h4>Annuler l’opération</h4>
-                      <p>Voulez-vous vraiment annuler cette opération ?</p>
-                      <div className="modal-actions">
-                        <button onClick={() => setCancelModal({ open: false, reference: null })}>
-                          Non
-                        </button>
-                        <button
-                          className="danger"
-                          onClick={async () => {
-                            await api.post("operations/cancel/", {
-                              reference: cancelModal.reference,
-                            });
-                            setCancelModal({ open: false, reference: null });
-                            load();
-                          }}
-                        >
-                          Oui
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* --- MODALE UNIQUE (Placée en dehors du .map) --- */}
+      {cancelModal.open && (
+        <div className="validator-overlay" onClick={() => setCancelModal({ open: false, reference: null })}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <span style={{fontSize: '2rem'}}>⚠️</span>
+              <h4>Annuler l’opération</h4>
+            </div>
+            <p>Voulez-vous vraiment annuler l'opération <strong>{cancelModal.reference}</strong> ?</p>
+            <div className="modal-actions">
+              <button 
+                className="btn-cancel" 
+                onClick={() => setCancelModal({ open: false, reference: null })}
+              >
+                Non, garder
+              </button>
+              <button
+                className="btn-confirm danger"
+                style={{ backgroundColor: '#28a745', color: 'white' }}
+                onClick={async () => {
+                  try {
+                    await api.post("operations/cancel/", {
+                      reference: cancelModal.reference,
+                    });
+                    setCancelModal({ open: false, reference: null });
+                    load();
+                  } catch (err) {
+                    alert("Erreur lors de l'annulation");
+                  }
+                }}
+              >
+                Oui, Annuler
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

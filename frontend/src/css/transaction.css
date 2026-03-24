@@ -6,6 +6,7 @@
   border: 1px solid #222;
   border-radius: 20px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  font-family: sans-serif;
 }
 
 /* Notification Toast */
@@ -210,6 +211,18 @@
   line-height: 1.4;
 }
 
+.btn-submit-transaction {
+  background: #FFD700;
+  color: #0f0f0f;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
 .btn-submit-transaction:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -224,11 +237,12 @@
 }
 
 .transaction-card {
-  background: #fff;
+  background: rgb(28, 28, 28);
   border-radius: 12px;
   padding: 15px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: 0.2s;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .transaction-card:hover {
@@ -244,7 +258,11 @@
 }
 
 .tx-amount {
-  color: #007bff;
+  color: #FFD700;
+}
+
+.history{
+  color: white;
 }
 
 .tx-arrow {
@@ -253,6 +271,7 @@
 
 .tx-recipient {
   font-weight: 500;
+  color: antiquewhite;
 }
 
 .tx-details {

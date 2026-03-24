@@ -151,7 +151,7 @@ export default function TransactionsPage() {
             <label>
               <Users size={16} className="label-icon" /> Groupe de validation
             </label>
-            <div className="premium-input" style={{padding: "10px", backgroundColor: "#f5f5f5", borderRadius: "4px"}}>
+            <div className="premium-input" style={{padding: "10px", borderRadius: "4px"}}>
               {selectedGroup.group_name}
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function TransactionsPage() {
             </div>
             <div className="summary-item">
               <span className="summary-label">Validateurs</span>
-              <span className="summary-value">{selectedGroup.validators_count} actifs</span>
+              <span className="summary-value">{selectedGroup.validators_count} </span>
             </div>
           </div>
         )}
@@ -228,7 +228,7 @@ export default function TransactionsPage() {
           ) : (
             <>
               <Send size={18} />
-              <span>Envoyer pour validation</span>
+              <span>Envoyer</span>
             </>
           )}
         </button>
@@ -237,3 +237,5 @@ export default function TransactionsPage() {
   </div>
 );
 }
+
+// 

@@ -15,16 +15,27 @@ export default function GroupTransactionsPage() {
   }, [groupId]);
 
   const loadTransactions = async () => {
-    try {
-      const res = await api.get(`groups/${groupId}/transactions/`);
-      setTransactions(res.data.results);
-    } catch (err) {
-      console.error(err);
-      alert("Erreur lors du chargement");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!groupId) return;
+
+  try {
+    setLoading(true);
+
+    const res = await api.get(`groups/${groupId}/transactions/history/`);
+
+    setTransactions(res.data?.results || []);
+
+  } catch (err) {
+    console.error("Erreur transactions:", err);
+
+    alert(
+      err.response?.data?.detail ||
+      "Erreur lors du chargement des transactions"
+    );
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getStatusStyle = (status) => {
     switch (status) {
@@ -44,7 +55,7 @@ export default function GroupTransactionsPage() {
       <Sidebar />
 
       <div className="page-content">
-        <h2>📊 Historique des transactions</h2>
+        <h2 className="history">Historique des transactions</h2>
 
         {loading && <p>Chargement...</p>}
 

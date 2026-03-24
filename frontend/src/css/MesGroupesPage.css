@@ -11,6 +11,7 @@
   background-color: var(--black-deep);
   min-height: 100vh;
   /* color: white; */
+  font-family: sans-serif;
 }
 
 .groups-header {

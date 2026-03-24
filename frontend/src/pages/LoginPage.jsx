@@ -26,7 +26,7 @@ export default function LoginPage() {
     const data = await res.json();
     localStorage.setItem("access_token", data.access);
 
-    navigate("/notifications");
+    navigate("/groups");
   };
 
   return (
