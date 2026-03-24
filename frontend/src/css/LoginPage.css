@@ -1,70 +1,132 @@
-/* Container principal centré sur la page */
+.login-page-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #0a0a0a; /* Fond noir profond */
+}
+
 .login-container {
+  background: #161616;
+  padding: 40px;
+  border-radius: 20px;
+  border: 1px solid #222;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.login-logo-img {
+  width: 180px;
+  margin-bottom: 15px;
+}
+
+.login-title {
+  color: #fff;
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.login-subtitle {
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.login-form {
   display: flex;
   flex-direction: column;
+  gap: 15px;
+}
+
+.input-group {
+  position: relative;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background-color: #121212; /* Noir profond */
-  color: #ffffff;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Titre "Connexion" */
-.login-title {
-  color: #ffcc00; /* Jaune vif */
-  font-size: 2.5rem;
-  margin-bottom: 2rem;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+.input-icon {
+  position: absolute;
+  left: 15px;
+  color: #444;
 }
 
-/* Style commun pour les inputs */
 .login-input {
-  width: 300px;
-  padding: 12px 15px;
-  margin: 10px 0;
-  border: 2px solid #333;
-  border-radius: 8px;
-  background-color: #1e1e1e;
-  color: white;
+  width: 100%;
+  padding: 12px 12px 12px 45px;
+  background: #0f0f0f;
+  border: 1px solid #333;
+  border-radius: 10px;
+  color: #fff;
   font-size: 1rem;
-  outline: none;
-  transition: border-color 0.3s ease;
+  transition: all 0.2s;
 }
 
-/* Changement de couleur au focus sur l'input */
 .login-input:focus {
   border-color: #ffcc00;
+  outline: none;
+  background: #111;
 }
 
-/* Style du bouton "Se connecter" */
-.login-button {
-  width: 330px;
-  padding: 12px;
-  margin-top: 20px;
-  background-color: #ffcc00; /* Jaune */
-  color: #000; /* Texte noir pour lisibilité */
-  border: none;
+.login-error-message {
+  background: rgba(255, 77, 77, 0.1);
+  color: #ff4d4d;
+  padding: 10px;
   border-radius: 8px;
-  font-weight: bold;
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: transform 0.2s, background-color 0.3s;
+  font-size: 0.85rem;
+  text-align: center;
+  border: 1px solid rgba(255, 77, 77, 0.2);
 }
 
-/* Effet au survol du bouton */
-.login-button:hover {
-  background-color: #e6b800;
+.login-button {
+  background: #ffcc00;
+  color: #000;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: transform 0.2s, background 0.2s;
+  margin-top: 10px;
+}
+
+.login-button:hover:not(:disabled) {
+  background: #e6b800;
   transform: translateY(-2px);
 }
 
-/* Effet au clic */
-.login-button:active {
-  transform: translateY(0);
+.login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
-/* Optionnel : style pour les placeholders */
-.login-input::placeholder {
-  color: #777;
+.login-footer {
+  margin-top: 25px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.register-link {
+  color: #ffcc00;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 8px;
+  transition: color 0.2s;
+}
+
+.register-link:hover {
+  color: #fff;
+  text-decoration: underline;
 }

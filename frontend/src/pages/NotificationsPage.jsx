@@ -1,111 +1,73 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  getPendingNotifications,
-  respondToGroupCreation,
-} from "../services/notifications";
+import { useEffect, useState, useCallback } from "react";
+import { getPendingNotifications } from "../services/notifications";
 import NotificationCard from "../components/NotificationCard";
-import { logout } from "../services/auth";
+import { RefreshCcw, BellOff, CheckCircle, XCircle, Filter } from "lucide-react";
 import "../css/notification.css";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const navigate = useNavigate(); // Ajout du hook navigate
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [filter, setFilter] = useState("all"); // 'all', 'invitation', 'system'
+  const [statusModal, setStatusModal] = useState({ open: false, message: "", isError: false });
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
-      setRefreshing(true);
+      setLoading(true);
       const data = await getPendingNotifications();
       setNotifications(data.results || []);
     } catch (e) {
-      console.error(e);
-      alert("Erreur lors du chargement des notifications");
+      setStatusModal({ open: true, message: "Impossible de charger les notifications.", isError: true });
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [loadNotifications]);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  const handleRespond = async (notification, accept) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
 
-  const handleRefresh = () => {
-    loadNotifications();
-  };
-
-
-const handleRespond = async (notification, accept) => {
-  try {
-
-    if (!notification.action) {
-      throw new Error("Aucune action définie pour cette notification");
-    }
-
-    const { endpoint, method, payload } = notification.action;
-
-    console.log("Notification =", notification);
-    console.log("Payload envoyé =", {
-      ...payload,
-      accept: accept,
-    });
-
-    const response = await fetch(
-      `http://127.0.0.1:8000${endpoint}`,
-      {
+    try {
+      const { endpoint, method, payload } = notification.action;
+      const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
         method: method || "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
-        body: JSON.stringify({
-          ...payload,
-          accept: accept,
-        }),
-      }
-    );
+        body: JSON.stringify({ ...payload, accept: accept }),
+      });
 
-    const data = await response.json();
-    console.log("Response =", data);
+      if (!response.ok) throw new Error("Le serveur a refusé la requête.");
 
-    if (!response.ok) {
-      throw new Error(data.message || "Erreur backend");
-    }
-
-    if (accept) {
-      // Ne pas supprimer : marquer comme acceptée et retirer l'action
-      setNotifications(prev =>
-        prev.map(n =>
-          n.id === notification.id ? { ...n, status: "ACCEPTED", action: null } : n
-        )
-      );
-      alert("✅ Action acceptée");
-    } else {
-      // Pour un refus, on supprime toujours la notification
+      // Animation de sortie : On retire de la liste avec un petit délai si nécessaire
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
-      alert("❌ Action refusée");
+      setStatusModal({ 
+        open: true, 
+        message: accept ? "Invitation acceptée !" : "Notification ignorée", 
+        isError: false 
+      });
+    } catch (e) {
+      setStatusModal({ open: true, message: "Action échouée. Vérifiez votre connexion.", isError: true });
+    } finally {
+      setIsProcessing(false);
     }
+  };
 
-  } catch (e) {
-    console.error(e);
-    alert("❌ Erreur lors de la réponse");
-  }
-};
-
-
+  const filteredNotifs = notifications.filter(n => {
+    if (filter === "all") return true;
+    return n.type?.toLowerCase() === filter;
+  });
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p className="loading-text">Chargement des notifications...</p>
+      <div className="loading-screen">
+        <div className="loader-gold"></div>
+        <p>Synchronisation...</p>
       </div>
     );
   }
@@ -113,59 +75,61 @@ const handleRespond = async (notification, accept) => {
   return (
     <div className="notifications-container">
       <div className="notifications-header">
-        <h1 className="header-title">Notifications</h1>
-        <div className="header-controls">
-          {/* <button 
-            className="refresh-button" 
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            {refreshing ? "🔄" : "🔄"} 
-            {refreshing ? "Actualisation..." : "Actualiser"}
-          </button> */}
+        <div className="title-section">
+          <h1 className="header-title">Centre d'actions</h1>
+          <p className="header-subtitle">Gérez vos invitations et alertes système</p>
+        </div>
+        <button className={`refresh-btn-circle ${loading ? 'spinning' : ''}`} onClick={loadNotifications}>
+          <RefreshCcw size={20} />
+        </button>
+      </div>
 
+      <div className="notif-toolbar">
+        <div className="filter-group">
+          <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Toutes</button>
+          <button className={`filter-btn ${filter === 'invitation' ? 'active' : ''}`} onClick={() => setFilter('invitation')}>Invitations</button>
+        </div>
+        <div className="stats-pill">
+          <span className="dot"></span>
+          {notifications.length} en attente
         </div>
       </div>
 
-      {notifications.length === 0 ? (
-        <div className="empty-state">
-          <h2 className="empty-title">Aucune notification</h2>
-          <p className="empty-subtitle">
-            Vous n'avez pas de notification en attente pour le moment.
-          </p>
-          <button className="refresh-button" onClick={handleRefresh} style={{ marginTop: '20px' }}>
-            Vérifier à nouveau
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="notifications-stats">
-            <div className="stats-count">
-              <span className="count-badge">{notifications.length}</span>
-              <span className="count-text">
-                notification{notifications.length > 1 ? 's' : ''} en attente
-              </span>
-            </div>
-            <div className="stats-actions">
-              <button className="action-button" onClick={() => {/* Fonction pour tout accepter */}}>
-                Tout accepter
-              </button>
-              <button className="action-button" onClick={() => {/* Fonction pour tout refuser */}}>
-                Tout refuser
-              </button>
-            </div>
+      <div className="notifications-list-wrapper">
+        {filteredNotifs.length === 0 ? (
+          <div className="empty-card">
+            <div className="icon-circle"><BellOff size={32} /></div>
+            <h3>Aucune notification</h3>
+            <p>Vous êtes à jour ! Revenez plus tard pour de nouvelles activités.</p>
           </div>
-
-          <div className="notifications-list">
-            {notifications.map((n) => (
+        ) : (
+          <div className="notifications-grid">
+            {filteredNotifs.map((n) => (
               <NotificationCard
                 key={n.id}
                 notification={n}
                 onRespond={handleRespond}
+                disabled={isProcessing}
               />
             ))}
           </div>
-        </>
+        )}
+      </div>
+
+      {/* Modal de Feedback */}
+      {statusModal.open && (
+        <div className="modal-overlay-blur">
+          <div className="modal-status-card">
+            <div className={`status-ring ${statusModal.isError ? 'error' : 'success'}`}>
+              {statusModal.isError ? <XCircle size={40} /> : <CheckCircle size={40} />}
+            </div>
+            <h3>{statusModal.isError ? "Erreur" : "Confirmé"}</h3>
+            <p>{statusModal.message}</p>
+            <button className="modal-close-btn" onClick={() => setStatusModal({ ...statusModal, open: false })}>
+              Continuer
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -22,83 +22,231 @@
   border-bottom: 1px solid #333;
 }
 
+/* Modification du Header pour plus de professionnalisme */
+.app-header {
+  height: 60px;
+  background-color: #0f0f0f;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 30px;
+  position: fixed;
+  top: 0;
+  left: 240px; /* Aligné sur ton sidebar */
+  right: 0;
+  z-index: 1000;
+  border-bottom: 1px solid #222; /* Ligne plus subtile */
+}
+
+/* Conteneur du header */
 .header-content {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   width: 100%;
 }
 
-.app-title {
-  margin: 0;
-  font-size: 1.5rem;
+/* Zone gauche du header (vide) */
+.header-left {
+  flex: 1;
 }
 
+/* Le conteneur de navigation */
 .header-nav {
-  /* Add styles for navigation if needed */
-    display: flex;
-    gap: 20px;
-    align-items: center;
-    margin-left: auto;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-left: auto;
 }
 
+/* Style des liens du header */
 .header-nav-link {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: white;
-  text-decoration: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: #888;
+  border-radius: 8px;
+  transition: all 0.2s;
 }
 
 .header-nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 204, 0, 0.1);
+  color: #ffcc00;
 }
 
 .header-nav-link.active {
-  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffcc00;
+  background-color: rgba(255, 204, 0, 0.15);
 }
 
-.app-main {
-  /* display: flex; */
-  /* flex: 1; */
-  overflow: hidden;
-}
-
-.app-content {
-  flex: 1;
-  padding: 24px 24px 24px 24px;
-  /* overflow-y: auto; */
-  /* space the content over to avoid overlapping the fixed sidebar */
-  margin-left: 210px;
-  /* margin-right: 10px; */
-  margin-top: 10px;
-  background-color: #0f0f0f;
-  /* min-height: calc(100vh - 10px); */
-  /* display: flex; */
-  flex-direction: column;
-  left: -1;
-  right: 0;
-  /* margin-right: 0; */
-  /* overflow: auto; */
-  width: auto;
-  /* padding: 20px; */
-}
-
-.user-info {
+/* LE BADGE DE NOTIFICATION */
+.notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background-color: #ff4d4d; /* Rouge vif */
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-left: 20px;
-  padding: 8px 16px;
-  background-color: white;
-  border-radius: 4px;
+  justify-content: center;
+  border: 2px solid #0f0f0f; /* Contour pour détacher du fond */
+  padding: 0 4px;
+}
+
+/* Pillule utilisateur pro */
+.user-profile-pill {
+  background: #1e1e1e;
+  padding: 6px 15px;
+  border-radius: 20px;
+  border: 1px solid #333;
+  margin-left: 10px;
 }
 
 .user-id {
-  font-size: 0.9rem;
-  color: #fff;
-  font-weight: 500;
+  color: #ffcc00;
+  font-weight: 600;
+  font-size: 0.85rem;
 }
+
+/* Correction de la zone de contenu pour éviter les "trous" */
+.app-content {
+  margin-left: 240px; /* Doit correspondre exactement au left du header */
+  margin-top: 60px;  /* Doit correspondre à la hauteur du header */
+  background-color: #0f0f0f;
+  min-height: calc(100vh - 60px);
+  padding: 30px;
+}
+
+/* Wrapper pour positionner le dropdown */
+.notif-wrapper {
+  position: relative;
+}
+
+.btn-notif {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Le menu déroulant */
+.notif-dropdown {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  width: 320px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  z-index: 2000;
+  overflow: hidden;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-header {
+  padding: 15px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  background: #222;
+}
+
+.dropdown-header .count {
+  font-size: 0.75rem;
+  color: #ffcc00;
+  background: rgba(255, 204, 0, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.dropdown-body {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.dropdown-item {
+  padding: 12px 15px;
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid #262626;
+  transition: background 0.2s;
+  cursor: pointer;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.dropdown-item:hover {
+  background: #262626;
+}
+
+.item-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 204, 0, 0.1);
+  color: #ffcc00;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.item-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  line-height: 1.3;
+}
+
+.item-time {
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.empty-notif {
+  padding: 30px;
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.dropdown-footer {
+  padding: 12px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #ffcc00;
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dropdown-footer:hover {
+  text-decoration: underline;
+  background: #222;
+}
+
+/* Personnalisation de la scrollbar du dropdown */
+.dropdown-body::-webkit-scrollbar {
+  width: 6px;
+}
+.dropdown-body::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 10px;
+}
+
+/* dropdown-item */

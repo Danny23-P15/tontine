@@ -1,32 +1,98 @@
-import React from 'react';
-import { NavLink } from "react-router-dom";
-import { Hourglass, Bell } from "lucide-react";
+import React, { useState, useEffect, useRef } from 'react';
+import { NavLink, useNavigate } from "react-router-dom";
+import { Hourglass, Bell, Inbox, CircleCheck, X } from "lucide-react";
 import { useAuth } from '../auth/AuthContext';
+import { getPendingNotifications } from "../services/notifications";
 import '../css/layout.css';
-import logo from '../assets/logovalideo.png';
-
 
 function Header() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Charger les notifications
+  const fetchNotifs = async () => {
+    try {
+      const data = await getPendingNotifications();
+      setNotifications(data.results || []);
+    } catch (e) {
+      console.error("Erreur notifications:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (user) fetchNotifs();
+    
+    // Fermer le menu si on clique ailleurs
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [user]);
+
+  const toggleDropdown = () => {
+    if (!showDropdown) fetchNotifs(); // Rafraîchir à l'ouverture
+    setShowDropdown(!showDropdown);
+  };
 
   return (
     <header className="app-header">
       <div className="header-content">
+        <div className="header-left"></div>
+
         <nav className="header-nav">
-          <NavLink to="/notifications" className="header-nav-link">
-            <Hourglass size={18} className="icon" /> 
-            <span className="link-text"></span>
+          <NavLink to="/notifications" className="header-nav-link" title="En attente">
+            <Hourglass size={20} /> 
           </NavLink>
-          <NavLink to="/notifications/inbox" className="header-nav-link">
-            <Bell size={18} className="icon" /> 
-            <span className="link-text"></span>
-          </NavLink>
-        </nav>
-        {user && (
-          <div className="user-info">
-            <span className="user-id">#{user.id}</span>
+          
+          {/* Conteneur de la cloche avec Dropdown */}
+          <div className="notif-wrapper" ref={dropdownRef}>
+            <button className={`header-nav-link btn-notif ${showDropdown ? 'active' : ''}`} onClick={toggleDropdown}>
+              <Bell size={20} />
+              {notifications.length > 0 && <span className="notif-badge">{notifications.length}</span>}
+            </button>
+
+            {showDropdown && (
+              <div className="notif-dropdown">
+                <div className="dropdown-header">
+                  <span>Notifications</span>
+                  <span className="count">{notifications.length} en attente</span>
+                </div>
+
+                <div className="dropdown-body">
+                  {notifications.length === 0 ? (
+                    <div className="empty-notif">Aucune nouvelle notification</div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div key={n.id} className="dropdown-item" onClick={() => navigate('/notifications/inbox')}>
+                        <div className="item-icon"><Inbox size={16} /></div>
+                        <div className="item-content">
+                          <p className="item-text">{n.message || "Nouvelle invitation"}</p>
+                          <small className="item-time">Il y a un instant</small>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="dropdown-footer" onClick={() => { navigate('/notifications/inbox'); setShowDropdown(false); }}>
+                  Voir toutes les notifications
+                </div>
+              </div>
+            )}
           </div>
-        )}
+
+          {user && (
+            <div className="user-profile-pill">
+              <span className="user-id">ID: {user.id}</span>
+            </div>
+          )}
+        </nav>
       </div>
     </header>
   );
