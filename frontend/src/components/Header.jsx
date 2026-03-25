@@ -11,6 +11,8 @@ function Header() {
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
 
   // Charger les notifications
   const fetchNotifs = async () => {
@@ -20,6 +22,12 @@ function Header() {
     } catch (e) {
       console.error("Erreur notifications:", e);
     }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    console.log("Recherche pour:", searchTerm);
+    // navigate(`/search?q=${searchTerm}`); 
   };
 
   useEffect(() => {
@@ -43,18 +51,46 @@ function Header() {
   return (
     <header className="app-header">
       <div className="header-content">
-        <div className="header-left"></div>
+        
+        <div className="header-left">
+          <form className="header-search-form" onSubmit={(e) => e.preventDefault()}>
+            <input 
+              type="text" 
+              placeholder="Rechercher..." 
+              className="header-search-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <X 
+                size={14} 
+                className="clear-search" 
+                onClick={() => setSearchTerm("")} 
+              />
+            )}
+          </form>
+        </div>
 
         <nav className="header-nav">
-          <NavLink to="/notifications" className="header-nav-link" title="En attente">
+          {/* Icône Sablier / En attente */}
+          <NavLink 
+            to="/notifications" 
+            className="header-nav-link" 
+            title="En attente"
+            onClick={() => setShowDropdown(false)}
+          >
             <Hourglass size={20} /> 
           </NavLink>
           
-          {/* Conteneur de la cloche avec Dropdown */}
           <div className="notif-wrapper" ref={dropdownRef}>
-            <button className={`header-nav-link btn-notif ${showDropdown ? 'active' : ''}`} onClick={toggleDropdown}>
+            <button 
+              className={`header-nav-link btn-notif ${showDropdown ? 'active' : ''}`} 
+              onClick={toggleDropdown}
+            >
               <Bell size={20} />
-              {notifications.length > 0 && <span className="notif-badge">{notifications.length}</span>}
+              {notifications.length > 0 && (
+                <span className="notif-badge">{notifications.length}</span>
+              )}
             </button>
 
             {showDropdown && (
@@ -69,7 +105,14 @@ function Header() {
                     <div className="empty-notif">Aucune nouvelle notification</div>
                   ) : (
                     notifications.map((n) => (
-                      <div key={n.id} className="dropdown-item" onClick={() => navigate('/notifications/inbox')}>
+                      <div 
+                        key={n.id} 
+                        className="dropdown-item" 
+                        onClick={() => {
+                          navigate('/notifications/inbox');
+                          setShowDropdown(false);
+                        }}
+                      >
                         <div className="item-icon"><Inbox size={16} /></div>
                         <div className="item-content">
                           <p className="item-text">{n.message || "Nouvelle invitation"}</p>
@@ -80,13 +123,17 @@ function Header() {
                   )}
                 </div>
 
-                <div className="dropdown-footer" onClick={() => { navigate('/notifications/inbox'); setShowDropdown(false); }}>
+                <div className="dropdown-footer" onClick={() => { 
+                  navigate('/notifications/inbox'); 
+                  setShowDropdown(false); 
+                }}>
                   Voir toutes les notifications
                 </div>
               </div>
             )}
           </div>
 
+          {/* Profil utilisateur */}
           {user && (
             <div className="user-profile-pill">
               <span className="user-id">ID: {user.id}</span>

@@ -6,7 +6,7 @@
   border: 1px solid #222;
   border-radius: 20px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-  font-family: sans-serif;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 /* Notification Toast */

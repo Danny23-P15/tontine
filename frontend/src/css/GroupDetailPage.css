@@ -99,6 +99,7 @@
   font-weight: 600;
   margin-bottom: 4px;
   color: #fff;
+  
 }
 
 .member-username {
@@ -243,8 +244,8 @@
 }
 .btn-view-balance {
   width: 100%;
-  background: #FFD700;
-  color: #000;
+  background: #000;
+  color: #fff;
   border: none;
   padding: 12px 20px;
   border-radius: 8px;
@@ -253,6 +254,8 @@
   cursor: pointer;
   margin-top: 20px;
   transition: background 0.3s;
+  border-color: #00ff00;
+  border: 1px solid #00ff00;
 }
 
 .btn-view-balance:hover {
@@ -405,3 +408,89 @@ button:disabled {
   cursor: not-allowed;
 }
 
+
+/* ── Filtres ── */
+.filters-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  background: #161616;
+  border: 1px solid #222;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filter-select,
+.filter-input {
+  padding: 9px 12px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #fff;
+  background: #0f0f0f;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.filter-select:focus,
+.filter-input:focus {
+  border-color: #FFD700;
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.08);
+}
+
+/* Fix couleur du calendrier sur fond sombre */
+.filter-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.filter-reset-btn {
+  padding: 9px 14px;
+  background: rgba(255, 68, 68, 0.1);
+  color: #ff4444;
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  align-self: flex-end;
+}
+
+.filter-reset-btn:hover {
+  background: rgba(255, 68, 68, 0.2);
+}
+
+/* ── Compteur de résultats ── */
+.results-count {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+/* ── Status badge arrondi ── */
+.tx-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 6px;
+}

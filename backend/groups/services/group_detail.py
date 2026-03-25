@@ -1,4 +1,5 @@
 from groups.models import ValidationGroup, GroupMembership, Operation, OperationType, OperationStatus
+from core.models import User
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import PermissionDenied
 
@@ -24,11 +25,13 @@ def get_group_detail(user, group_id):
 
     members = []
     for m in members_qs:
+        user = User.objects.get(phone_number=m.phone_number)
         members.append({
+            "full_name": user.full_name,
             "phone_number": m.phone_number,
             "cin": m.cin,
             "role": m.role,
-            "joined_at": m.joined_at
+            "joined_at": m.joined_at,
         })
 
     # déterminer s'il existe déjà une demande de suppression en attente

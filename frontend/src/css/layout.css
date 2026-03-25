@@ -6,6 +6,71 @@
   left: 0;
 }
 
+/* --- Barre de recherche dans le Header --- */
+
+.header-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.header-search-form {
+  position: relative;
+  width: 100%;
+  max-width: 400px; /* Limite la largeur pour ne pas envahir le header */
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  color: #555;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.header-search-input {
+  width: 100%;
+  background-color: #1a1a1a; /* Un peu plus clair que le fond du header */
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 10px 35px 10px 40px; /* Espace pour l'icône search et la croix */
+  color: #eee;
+  font-size: 0.9rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-search-input:focus {
+  outline: none;
+  border-color: #ffcc00;
+  background-color: #222;
+  box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.05);
+}
+
+.header-search-input:focus + .search-icon {
+  color: #ffcc00;
+}
+
+.clear-search {
+  position: absolute;
+  right: 12px;
+  color: #555;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.clear-search:hover {
+  color: #ff4d4d;
+}
+
+/* Responsive : cacher ou réduire la barre sur petit écran */
+@media (max-width: 900px) {
+  .header-search-input {
+    max-width: 200px;
+  }
+}
+
 .app-header {
   height: 60px;
   background-color: #0f0f0f;
@@ -149,6 +214,7 @@
   z-index: 2000;
   overflow: hidden;
   animation: slideIn 0.2s ease-out;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 @keyframes slideIn {

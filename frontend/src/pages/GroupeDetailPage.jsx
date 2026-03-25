@@ -200,6 +200,9 @@ function GroupDetailPage() {
                 <div className="member-avatar-mini">{member.full_name?.charAt(0)?.toUpperCase()}</div>
                 <div className="member-body">
                   <span className="member-fullname">{member.full_name}</span>
+                  {member.username && (
+                    <span className="member-username">@{member.username}</span>
+                  )}
                   <span className="member-sub">{member.phone_number}</span>
                 </div>
                 <div className="member-tag-wrapper">
