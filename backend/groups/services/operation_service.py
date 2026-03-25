@@ -466,6 +466,7 @@ def request_transaction(
     group: ValidationGroup,
     initiator_phone: str,
     recipient_phone: str,
+    reason: str,
     amount: Decimal,
 ) -> tuple[bool, str | None]:
 
@@ -475,6 +476,9 @@ def request_transaction(
 
     if not group.is_active:
         return False, "Le groupe n’est pas actif"
+    
+    if not reason or len(reason.strip()) < 3:
+        return False, "Veuillez fournir une raison valide pour la transaction"
 
     # ✅ Règles métier spécifiques
     allowed, reason = can_request_transaction(
@@ -495,6 +499,7 @@ def request_transaction(
             payload={
                 "recipient_phone_number": recipient_phone,
                 "amount": str(amount),
+                "reason": reason
             },
             status=OperationStatus.PENDING,
             expires_at=timezone.now() + timezone.timedelta(hours=48)
@@ -505,6 +510,7 @@ def request_transaction(
             operation=operation,
             recipient_phone_number=recipient_phone,
             amount=amount,
+            reason=reason,
             reference=f"TXN-{uuid.uuid4().hex[:8]}"
         )
 

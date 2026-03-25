@@ -410,6 +410,7 @@ class RequestTransactionAPIView(APIView):
             group=group,
             initiator_phone=request.user.phone_number,
             recipient_phone=recipient,
+            reason=request.data.get("reason"),
             amount=amount
         )
 
@@ -488,6 +489,7 @@ class GroupTransactionsAPIView(APIView):
                 "amount": str(tx.amount),
                 "recipient": tx.recipient_phone_number,
                 "initiator": tx.operation.initiator_phone_number,
+                "reason": tx.reason,
                 "status": tx.operation.status,
                 "created_at": tx.operation.created_at,
             })

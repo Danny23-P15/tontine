@@ -52,7 +52,8 @@ class PendingOperationSerializer(serializers.ModelSerializer):
         if obj.operation_type == "TRANSACTION" and hasattr(obj, 'transaction'):
             return {
                 "recipient_phone_number": obj.transaction.recipient_phone_number,
-                "amount": str(obj.transaction.amount)
+                "amount": str(obj.transaction.amount),
+                "reason": obj.transaction.reason
             }
         return None
 

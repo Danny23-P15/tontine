@@ -343,6 +343,7 @@ class Transaction(models.Model):
     )
 
     recipient_phone_number = models.CharField(max_length=20)
+    reason = models.TextField(null=True, blank=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
 
     executed_at = models.DateTimeField(null=True, blank=True)

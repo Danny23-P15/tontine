@@ -38,6 +38,7 @@ class TransactionNotificationTestCase(TestCase):
             group=self.group,
             initiator_phone="0348000000",
             recipient_phone="0350000000",
+            reason="Paiement de fournisseur",
             amount=Decimal("1500"),
         )
         self.assertTrue(success, msg)
