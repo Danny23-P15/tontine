@@ -238,10 +238,10 @@ function GroupDetailPage() {
                     </div>
                   </div>
                   <div className="balance-split">
-                    <div className="split-item">
+                    {/* <div className="split-item">
                       <span className="label">Disponible</span>
                       <span className="value available">{Number(balance.available_balance || 0).toLocaleString("fr-FR")} {balance.currency || "Ar"}</span>
-                    </div>
+                    </div> */}
                     <div className="split-item">
                       <span className="label">En attente</span>
                       <span className="value pending">{Number(balance.pending_balance || 0).toLocaleString("fr-FR")} {balance.currency || "Ar"}</span>

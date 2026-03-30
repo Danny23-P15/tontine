@@ -3,7 +3,6 @@
   background: #0f0f0f;
   min-height: 100vh;
   color: #fff;
-  font-family: sans-serif;
 }
 
 .group-detail-header {
@@ -33,7 +32,6 @@
   display: grid;
   grid-template-columns: 300px 1fr;
   gap: 40px;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 /* Stat Cards */

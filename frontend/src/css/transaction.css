@@ -6,7 +6,6 @@
   border: 1px solid #222;
   border-radius: 20px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 /* Notification Toast */
@@ -242,7 +241,6 @@
   padding: 15px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: 0.2s;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .transaction-card:hover {

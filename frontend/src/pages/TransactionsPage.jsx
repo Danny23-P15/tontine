@@ -12,6 +12,7 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
   const [useGroupAccount, setUseGroupAccount] = useState(true);
+  const [reason, setReason] = useState("");
 
   useEffect(() => {
     loadGroups();
@@ -62,6 +63,10 @@ export default function TransactionsPage() {
       showNotification("Montant invalide", "error");
       return;
     }
+    if (!reason.trim() || reason.trim().length < 3) {
+      showNotification("Veuillez fournir un motif valide (min. 3 caractères)", "error");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -72,6 +77,7 @@ export default function TransactionsPage() {
           phone_number: phone.trim(),
           amount: amount,
           use_group_account: useGroupAccount,
+          reason: reason.trim(),
         }
       );
 
@@ -79,6 +85,7 @@ export default function TransactionsPage() {
 
       setPhone("");
       setAmount("");
+      setReason("");
 
     } catch (err) {
       const errorMessage = err.response?.data?.detail || "Erreur lors de la demande";
@@ -198,6 +205,16 @@ export default function TransactionsPage() {
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
           />
+        </div>
+
+        <div className="form-group">
+          <label>Motif</label>
+            <input
+            className="premium-input"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Ex: Paiement fournisseur"
+            />
         </div>
 
         {/* SECTION SOURCE DU DÉBIT */}

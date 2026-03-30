@@ -214,7 +214,6 @@
   z-index: 2000;
   overflow: hidden;
   animation: slideIn 0.2s ease-out;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 @keyframes slideIn {
@@ -252,7 +251,6 @@
   border-bottom: 1px solid #262626;
   transition: background 0.2s;
   cursor: pointer;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .dropdown-item:hover {

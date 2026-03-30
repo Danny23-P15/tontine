@@ -11,7 +11,6 @@
   background-color: var(--black-deep);
   min-height: 100vh;
   /* color: white; */
-  font-family: sans-serif;
 }
 
 .groups-header {
@@ -62,6 +61,7 @@
   width: 6px;
   background: #444; /* Gris par défaut */
   transition: background 0.3s;
+  
 }
 
 .group-card-premium.is-owner .card-accent-line {
