@@ -97,6 +97,61 @@ class RespondGroupCreationAPIView(APIView):
         status_code = 200 if success else 400
         return Response({"message": message}, status=status_code)
 
+class PendingGroupCreationsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Récupère les demandes de création de groupe en attente initiées par l'utilisateur"""
+        pending_groups = TemporaryGroupCreation.objects.filter(
+            initiator_phone_number=request.user.phone_number,
+            is_cancelled=False,
+            expires_at__gt=timezone.now()
+        )
+        
+        data = []
+        for group in pending_groups:
+            data.append({
+                "id": group.id,
+                "group_name": group.group_name,
+                "quorum": group.quorum,
+                "created_at": group.created_at,
+                "expires_at": group.expires_at,
+                "validators_count": group.validators.count(),
+                "accepted_count": group.validators.filter(has_accepted=True).count(),
+            })
+        
+        return Response({"results": data}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        """Annule une demande de création de groupe"""
+        temp_group_id = request.data.get("temp_group_id")
+        
+        if not temp_group_id:
+            return Response(
+                {"error": "temp_group_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            temp_group = TemporaryGroupCreation.objects.get(
+                id=temp_group_id,
+                initiator_phone_number=request.user.phone_number,
+                is_cancelled=False
+            )
+        except TemporaryGroupCreation.DoesNotExist:
+            return Response(
+                {"error": "Demande introuvable ou non autorisée"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        temp_group.is_cancelled = True
+        temp_group.save()
+        
+        return Response(
+            {"message": "Demande de création annulée"},
+            status=status.HTTP_200_OK
+        )
+
 class MyGroupsAPIView(APIView):
     permission_classes = [IsAuthenticated]
 

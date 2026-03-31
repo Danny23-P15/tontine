@@ -129,17 +129,7 @@ def respond_to_group_deletion(operation: Operation):
         return
 
     # ✅ unanimité atteinte
-    group.deleted_at = timezone.now()
-    group.is_active = False
-    group.save(update_fields=["deleted_at", "is_active"])
-
-    GroupMembership.objects.filter(
-        group=group,
-        left_at__isnull=True
-    ).update(
-        left_at=timezone.now(),
-        is_active=False
-    )
+    group.mark_as_deleted()
 
     operation.status = OperationStatus.APPROVED
     operation.resolved_at = timezone.now()

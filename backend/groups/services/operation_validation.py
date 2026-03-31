@@ -335,17 +335,7 @@ def respond_to_group_deletion(operation: Operation):
         return
 
     # ✅ unanimité atteinte
-    group.deleted_at = timezone.now()
-    group.is_active = False
-    group.save(update_fields=["deleted_at", "is_active"])
-
-    GroupMembership.objects.filter(
-        group=group,
-        left_at__isnull=True
-    ).update(
-        left_at=timezone.now(),
-        is_active=False
-    )
+    group.mark_as_deleted()
 
     operation.status = OperationStatus.APPROVED
     operation.resolved_at = timezone.now()
@@ -413,10 +403,7 @@ def respond_to_delete_group_request(
 
     # ✅ Tous acceptés → suppression réelle
     group = operation.group
-
-    group.is_active = False
-    group.deleted_at = timezone.now()
-    group.save()
+    group.mark_as_deleted()
 
     operation.status = OperationStatus.COMPLETED
     operation.save()
@@ -449,18 +436,7 @@ def execute_remove_validator(operation: Operation) -> None:
 def execute_group_deletion(operation: Operation) -> None:
 
     group = operation.group
-
-    group.deleted_at = timezone.now()
-    group.is_active = False
-    group.save(update_fields=["deleted_at", "is_active"])
-
-    GroupMembership.objects.filter(
-        group=group,
-        left_at__isnull=True
-    ).update(
-        left_at=timezone.now(),
-        is_active=False
-    )
+    group.mark_as_deleted()
 
     operation.status = OperationStatus.COMPLETED
     operation.completed_at = timezone.now()

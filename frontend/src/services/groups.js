@@ -10,6 +10,18 @@ export const getGroupDetail = async (groupId) => {
     return response.data;
 };
 
+export const getPendingGroupCreations = async () => {
+    const response = await api.get("/groups/creation/pending/");
+    return response.data;
+};
+
+export const cancelGroupCreation = async (tempGroupId) => {
+    const response = await api.post("/groups/creation/pending/", {
+        temp_group_id: tempGroupId,
+    });
+    return response.data;
+};
+
 export async function requestRemoveValidator(groupId, validatorPhone) {
   const response = await fetch(
     `http://127.0.0.1:8000/api/groups/${groupId}/remove-validator/`,

@@ -265,7 +265,9 @@ function GroupDetailPage() {
             <p>Sélectionnez un membre pour rejoindre votre cercle.</p>
             <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} disabled={isProcessing}>
               <option value="">-- Choisir un utilisateur --</option>
-              {allUsers.map(user => (
+              {allUsers
+                .filter(user => !group.members.some(member => member.phone_number === (user.phone_number || user.phone)))
+                .map(user => (
                 <option key={user.id} value={user.phone_number || user.id}>
                   {user.full_name} - {user.phone_number}
                 </option>

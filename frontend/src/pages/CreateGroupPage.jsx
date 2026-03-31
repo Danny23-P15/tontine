@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getMyGroups } from "../services/groups";
+import { getMyGroups, getPendingGroupCreations, cancelGroupCreation } from "../services/groups";
 import "../css/groupCreation.css";
 
 function CreateGroupPage() {
@@ -19,6 +19,9 @@ function CreateGroupPage() {
   const [isInitiator, setIsInitiator] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [pendingCreations, setPendingCreations] = useState([]);
+  const [loadingPending, setLoadingPending] = useState(true);
+  const [cancellingPending, setCancellingPending] = useState(false);
 
   const token = localStorage.getItem("access_token");
 
@@ -32,7 +35,17 @@ function CreateGroupPage() {
         setIsInitiator(groups.some(group => group.role === "INITIATOR"));
         setLoadingRoles(false);
 
-        // 2. Charger les utilisateurs pour la recherche
+        // 2. Charger les demandes de création en attente
+        try {
+          const pendingData = await getPendingGroupCreations();
+          setPendingCreations(pendingData.results || []);
+        } catch (err) {
+          console.error("Erreur chargement demandes en attente:", err);
+        } finally {
+          setLoadingPending(false);
+        }
+
+        // 3. Charger les utilisateurs pour la recherche
         const userRes = await fetch("http://127.0.0.1:8000/api/users/", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -50,6 +63,21 @@ function CreateGroupPage() {
   }, [token]);
 
   // --- FONCTIONS DE LOGIQUE ---
+
+  const handleCancelPending = async () => {
+    if (!pendingCreations[0]) return;
+    
+    setCancellingPending(true);
+    try {
+      await cancelGroupCreation(pendingCreations[0].id);
+      setPendingCreations([]);
+    } catch (err) {
+      console.error("Erreur annulation:", err);
+      setError("Erreur lors de l'annulation de la demande");
+    } finally {
+      setCancellingPending(false);
+    }
+  };
 
   const addValidator = (user) => {
     if (selectedValidators.find(v => v.phone_number === user.phone_number)) return;
@@ -123,10 +151,36 @@ function CreateGroupPage() {
 
   return (
     <div className="group-page-container">
-      <h2 className="group-page-title">Créer un groupe</h2>
+      <h2 className="group-page-title">Création de groupe</h2>
 
-      {loadingRoles ? (
+      {loadingRoles || loadingPending ? (
         <div className="loading-msg">Chargement en cours...</div>
+      ) : pendingCreations.length > 0 ? (
+        <div className="pending-creation-modal">
+          <div className="pending-modal-content">
+            <div className="pending-icon">⏳</div>
+            <h3>Création de groupe en cours</h3>
+            <p>Vous avez déjà une demande de création de groupe en attente de validation :</p>
+            <div className="pending-group-info">
+              <h4>{pendingCreations[0].group_name}</h4>
+              <p className="validators-info">{pendingCreations[0].accepted_count}/{pendingCreations[0].validators_count} validateurs ont accepté</p>
+              <p className="quorum-info">Quorum requis : {pendingCreations[0].quorum}</p>
+            </div>
+            <p className="info-text">Veuillez attendre que tous les validateurs répondent avant de créer un nouveau groupe.</p>
+            <div className="pending-modal-buttons">
+              <button className="modal-btn main-btn" onClick={() => navigate("/notifications")}>
+                Voir les notifications
+              </button>
+              <button 
+                className="modal-btn cancel-btn" 
+                onClick={handleCancelPending}
+                disabled={cancellingPending}
+              >
+                {cancellingPending ? "Annulation..." : "Annuler la demande"}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : isInitiator ? (
         <div className="initiator-restriction">
           <div className="restriction-icon">⚠️</div>

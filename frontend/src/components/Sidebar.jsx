@@ -55,7 +55,7 @@ function Sidebar() {
           </NavLink>
           <NavLink to="/groups/create" className="nav-link">
             <PlusCircle size={18} className="icon" /> 
-            <span className="link-text">Créer un groupe</span>
+            <span className="link-text">Création de groupe</span>
           </NavLink>
 
           <p className="nav-section-title">Historique</p>
