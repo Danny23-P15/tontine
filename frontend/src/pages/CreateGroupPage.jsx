@@ -219,36 +219,63 @@ function CreateGroupPage() {
             </div>
 
             <div className="validators-section">
-              <h3 className="section-subtitle">Validateurs ({selectedValidators.length}/5)</h3>
+              <h3 className="section-subtitle">
+                Validateurs <span className="highlight">({selectedValidators.length}/5)</span>
+              </h3>
+              
               <div className="selected-list">
-                {selectedValidators.map((v) => (
-                  <div key={v.phone_number} className="validator-card">
-                    <div className="validator-info">
-                      <div className="validator-name">{v.full_name}</div>
-                      <div className="validator-details">{v.phone_number}</div>
+                {selectedValidators.length === 0 ? (
+                  <p className="empty-msg">Aucun membre sélectionné.</p>
+                ) : (
+                  selectedValidators.map((v) => (
+                    <div key={v.phone_number} className="validator-card">
+                      <div className="validator-info">
+                        <div className="validator-name">{v.full_name}</div>
+                        <div className="validator-details">Tél: {v.phone_number}</div>
+                      </div>
+                      <button type="button" className="remove-btn" onClick={() => removeValidator(v.phone_number)} title="Retirer">
+                        &times;
+                      </button>
                     </div>
-                    <button type="button" className="remove-btn" onClick={() => removeValidator(v.phone_number)}>&times;</button>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               <div className="add-validator-box">
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Rechercher..."
-                  value={searchQuery}
-                  onChange={(e) => {setSearchQuery(e.target.value); setShowDropdown(true);}}
-                />
-                {showDropdown && searchQuery && (
-                  <div className="dropdown-list">
-                    {filteredUsers.map(user => (
-                      <button key={user.phone_number} type="button" className="dropdown-item" onClick={() => addValidator(user)}>
-                        {user.full_name} ({user.phone_number})
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div className="search-container">
+                  <input
+                    type="text"
+                    className="form-input search-input"
+                    placeholder="Rechercher par nom ou téléphone..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowDropdown(true);
+                    }}
+                    onFocus={() => setShowDropdown(true)}
+                    disabled={selectedValidators.length >= 5}
+                  />
+                  
+                  {showDropdown && searchQuery && (
+                    <div className="dropdown-list">
+                      {filteredUsers.length > 0 ? (
+                        filteredUsers.map((user) => (
+                          <button 
+                            key={user.phone_number} 
+                            type="button" 
+                            className="dropdown-item" 
+                            onClick={() => addValidator(user)}
+                          >
+                            <span className="dropdown-item-name">{user.full_name}</span>
+                            <span className="dropdown-item-phone">{user.phone_number}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="dropdown-empty">Aucun utilisateur trouvé</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

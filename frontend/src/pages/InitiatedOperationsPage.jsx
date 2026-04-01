@@ -36,11 +36,14 @@ export default function InitiatedOperationsPage() {
   const getFilteredOps = () => {
     let filtered = ops;
 
+    // Exclure les demandes de création de groupe
+    filtered = filtered.filter(op => op.operation_type !== "GROUP_CREATION");
+
     // Filtrer par statut
     if (filter === "all") {
-      filtered = ops;
+      filtered = filtered;
     } else {
-      filtered = ops.filter(op => {
+      filtered = filtered.filter(op => {
         if (filter === "expired") {
           return op.status === "EXPIRED" || 
                  (op.status === "PENDING" && op.expires_at && new Date(op.expires_at) < new Date());
@@ -102,16 +105,18 @@ export default function InitiatedOperationsPage() {
   };
 
   const getCountByStatus = (status) => {
+    const nonGroupOps = ops.filter(op => op.operation_type !== "GROUP_CREATION");
+    
     if (status === "expired") {
-      return ops.filter(op => 
+      return nonGroupOps.filter(op => 
         op.status === "EXPIRED" || 
         (op.status === "PENDING" && op.expires_at && new Date(op.expires_at) < new Date())
       ).length;
     }
     if (status === "cancelled") {
-      return ops.filter(op => op.status === "CANCELLED").length;
+      return nonGroupOps.filter(op => op.status === "CANCELLED").length;
     }
-    return ops.filter(op => op.status === status.toUpperCase()).length;
+    return nonGroupOps.filter(op => op.status === status.toUpperCase()).length;
   };
 
 return (
@@ -157,7 +162,7 @@ return (
           className={`filter-btn ${filter === "all" ? "active" : ""}`}
           onClick={() => setFilter("all")}
         >
-          Tous ({ops.length})
+          Tous ({getFilteredOps().length})
         </button>
         {/* ... (garder tes autres boutons identiques) ... */}
       </div>

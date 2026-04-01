@@ -3,8 +3,9 @@
   background: #0f0f0f;
   min-height: 100vh;
   color: #fff;
+/* font-family: sans-serif; */
 }
-
+/* modal-overlay */
 .group-detail-header {
   display: flex;
   justify-content: space-between;
@@ -148,7 +149,7 @@
 }
 
 .validator-modal {
-  background: #1e1e24;
+  background: #0f0f0f;
   padding: 2.5rem;
   border-radius: 20px;
   width: 90%;
@@ -290,7 +291,7 @@
 }
 
 .modal {
-  background: #1e1e24;
+  background: #0f0f0f;
   padding: 2rem;
   border-radius: 20px;
   width: 90%;
