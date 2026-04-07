@@ -192,15 +192,48 @@ return (
                   </div>
 
                   <div className="progress-section">
-                    <div className="progress-labels">
-                      <span>Progression des votes</span>
-                      <span>{op.approved_count} / {op.total_validators}</span>
-                    </div>
-                    <div className="progress-bar-bg">
-                      <div 
-                        className="progress-bar-fill" 
-                        style={{ width: `${(op.approved_count / op.total_validators) * 100}%` }}
-                      ></div>
+                    <div className="progress-circle-container">
+                      <svg width="70" height="120" viewBox="0 0 120 120" className="progress-circle-svg">
+                        <circle 
+                          cx="60" 
+                          cy="60" 
+                          r="50" 
+                          fill="none" 
+                          stroke="#e0e0e0" 
+                          strokeWidth="8"
+                        />
+                        <circle 
+                          cx="60" 
+                          cy="60" 
+                          r="50" 
+                          fill="none" 
+                          stroke="#4CAF50" 
+                          strokeWidth="8"
+                          strokeDasharray={`${2 * Math.PI * 50}`}
+                          strokeDashoffset={`${2 * Math.PI * 50 * (1 - op.approved_count / op.total_validators)}`}
+                          className="progress-circle-fill"
+                          style={{ 
+                            transform: "rotate(-90deg)", 
+                            transformOrigin: "60px 60px",
+                            transition: "stroke-dashoffset 0.5s ease"
+                          }}
+                        />
+                        <text 
+                          x="60" 
+                          y="70" 
+                          textAnchor="middle" 
+                          fontSize="24" 
+                          fontWeight="bold" 
+                          fill="#333"
+                          className="progress-circle-text"
+                        >
+                          {Math.round((op.approved_count / op.total_validators) * 100)}%
+                        </text>
+                      </svg>
+                      <div className="progress-circle-info">
+                        <p className="progress-circle-label">Progression des votes</p>
+                        <p className="progress-circle-count">{op.approved_count} / {op.total_validators}</p>
+                      </div>
                     </div>
                   </div>
 

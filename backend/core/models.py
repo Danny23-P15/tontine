@@ -4,10 +4,17 @@ from django.utils import timezone
 from .managers import UserManager   # ← IMPORTANT
 
 class User(AbstractBaseUser, PermissionsMixin):
+
+    class Role(models.TextChoices):
+        USER = 'USER', 'User'
+        SUPERADMIN = 'SUPERADMIN', 'SuperAdmin'
+
     phone_number = models.CharField(max_length=20, unique=True)
     cin = models.CharField(max_length=20, unique=True)
     full_name = models.CharField(max_length=150)
     email = models.EmailField(blank=True, null=True)
+
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.USER)
     
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

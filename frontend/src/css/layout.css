@@ -183,7 +183,6 @@
 /* Correction de la zone de contenu pour éviter les "trous" */
 .app-content {
   margin-left: 240px; /* Doit correspondre exactement au left du header */
-  margin-top: 60px;  /* Doit correspondre à la hauteur du header */
   background-color: #0f0f0f;
   min-height: calc(100vh - 60px);
   padding: 30px;

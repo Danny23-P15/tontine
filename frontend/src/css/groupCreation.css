@@ -1,12 +1,13 @@
 /* Container de la page */
 .group-page-container {
- max-width: 550px;
+ max-width: 400px;
   margin: 40px auto;
   padding: 30px;
   background: #111111;
   border: 1px solid #222;
   border-radius: 20px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  margin: 0;
 }
 
 .group-page-title {
@@ -619,4 +620,77 @@
 .cancel-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Layout côte à côte */
+.group-page-wrapper {
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+
+/* Panneau règles de gestion */
+.rules-panel {
+  flex: 1;
+  background: #111111;
+  border: 1px solid #222;
+  border-radius: 20px;
+  padding: 28px;
+  position: sticky;
+  top: 20px;
+}
+
+.rules-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #222;
+}
+
+.rules-icon {
+  font-size: 20px;
+}
+
+.rules-panel-header h3 {
+  color: #ffcc00;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.rules-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rules-list li {
+  color: #ccc;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  padding: 12px 15px;
+  background: #1a1a1a;
+  border-radius: 8px;
+}
+
+/* Responsive : empiler en colonne sur mobile */
+@media (max-width: 768px) {
+  .group-page-wrapper {
+    flex-direction: column;
+  }
+  .group-page-container {
+    flex: none;
+    width: 100%;
+  }
 }

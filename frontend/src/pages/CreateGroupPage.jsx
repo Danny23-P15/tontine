@@ -150,152 +150,165 @@ function CreateGroupPage() {
   };
 
   return (
-    <div className="group-page-container">
-      <h2 className="group-page-title">Création de groupe</h2>
+    <div className="group-page-wrapper">
+      <div className="group-page-container">
+        <h2 className="group-page-title">Création de groupe</h2>
 
-      {loadingRoles || loadingPending ? (
-        <div className="loading-msg">Chargement en cours...</div>
-      ) : pendingCreations.length > 0 ? (
-        <div className="pending-creation-modal">
-          <div className="pending-modal-content">
-            <div className="pending-icon">⏳</div>
-            <h3>Création de groupe en cours</h3>
-            <p>Vous avez déjà une demande de création de groupe en attente de validation :</p>
-            <div className="pending-group-info">
-              <h4>{pendingCreations[0].group_name}</h4>
-              <p className="validators-info">{pendingCreations[0].accepted_count}/{pendingCreations[0].validators_count} validateurs ont accepté</p>
-              <p className="quorum-info">Quorum requis : {pendingCreations[0].quorum}</p>
-            </div>
-            <p className="info-text">Veuillez attendre que tous les validateurs répondent avant de créer un nouveau groupe.</p>
-            <div className="pending-modal-buttons">
-              <button className="modal-btn main-btn" onClick={() => navigate("/notifications")}>
-                Voir les notifications
-              </button>
-              <button 
-                className="modal-btn cancel-btn" 
-                onClick={handleCancelPending}
-                disabled={cancellingPending}
-              >
-                {cancellingPending ? "Annulation..." : "Annuler la demande"}
-              </button>
+        {loadingRoles || loadingPending ? (
+          <div className="loading-msg">Chargement en cours...</div>
+        ) : pendingCreations.length > 0 ? (
+          <div className="pending-creation-modal">
+            <div className="pending-modal-content">
+              <div className="pending-icon">⏳</div>
+              <h3>Création de groupe en cours</h3>
+              <p>Vous avez déjà une demande de création de groupe en attente de validation :</p>
+              <div className="pending-group-info">
+                <h4>{pendingCreations[0].group_name}</h4>
+                <p className="validators-info">{pendingCreations[0].accepted_count}/{pendingCreations[0].validators_count} validateurs ont accepté</p>
+                <p className="quorum-info">Quorum requis : {pendingCreations[0].quorum}</p>
+              </div>
+              <p className="info-text">Veuillez attendre que tous les validateurs répondent avant de créer un nouveau groupe.</p>
+              <div className="pending-modal-buttons">
+                <button className="modal-btn main-btn" onClick={() => navigate("/notifications")}>
+                  Voir les notifications
+                </button>
+                <button 
+                  className="modal-btn cancel-btn" 
+                  onClick={handleCancelPending}
+                  disabled={cancellingPending}
+                >
+                  {cancellingPending ? "Annulation..." : "Annuler la demande"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      ) : isInitiator ? (
-        <div className="initiator-restriction">
-          <div className="restriction-icon">⚠️</div>
-          <h3>Vous êtes déjà initiateur</h3>
-          <p>Vous ne pouvez initier qu'un seul groupe à la fois.</p>
-          <button className="back-btn" onClick={() => navigate("/groups")}>
-            Retour à mes groupes
-          </button>
-        </div>
-      ) : (
-        <>
-          {error && <div className="error-banner">{error}</div>}
-          <form onSubmit={handleSubmit} className="group-form">
-            <div className="form-section">
-              <label className="form-label">Nom du groupe *</label>
-              <input
-                className="form-input"
-                placeholder="Ex: Project"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-section">
-              <label className="form-label">Quorum *</label>
-              <input
-                className="form-input"
-                type="number"
-                min="1"
-                max={selectedValidators.length || 1}
-                value={quorum}
-                onChange={(e) => setQuorum(parseInt(e.target.value) || 1)}
-                required
-              />
-            </div>
-
-            <div className="validators-section">
-              <h3 className="section-subtitle">
-                Validateurs <span className="highlight">({selectedValidators.length}/5)</span>
-              </h3>
-              
-              <div className="selected-list">
-                {selectedValidators.length === 0 ? (
-                  <p className="empty-msg">Aucun membre sélectionné.</p>
-                ) : (
-                  selectedValidators.map((v) => (
-                    <div key={v.phone_number} className="validator-card">
-                      <div className="validator-info">
-                        <div className="validator-name">{v.full_name}</div>
-                        <div className="validator-details">Tél: {v.phone_number}</div>
-                      </div>
-                      <button type="button" className="remove-btn" onClick={() => removeValidator(v.phone_number)} title="Retirer">
-                        &times;
-                      </button>
-                    </div>
-                  ))
-                )}
+        ) : isInitiator ? (
+          <div className="initiator-restriction">
+            <div className="restriction-icon">⚠️</div>
+            <h3>Vous êtes déjà initiateur</h3>
+            <p>Vous ne pouvez initier qu'un seul groupe à la fois.</p>
+            <button className="back-btn" onClick={() => navigate("/groups")}>
+              Retour à mes groupes
+            </button>
+          </div>
+        ) : (
+          <>
+            {error && <div className="error-banner">{error}</div>}
+            <form onSubmit={handleSubmit} className="group-form">
+              <div className="form-section">
+                <label className="form-label">Nom du groupe *</label>
+                <input
+                  className="form-input"
+                  placeholder="Ex: Project"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  required
+                />
               </div>
 
-              <div className="add-validator-box">
-                <div className="search-container">
-                  <input
-                    type="text"
-                    className="form-input search-input"
-                    placeholder="Rechercher par nom ou téléphone..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setShowDropdown(true);
-                    }}
-                    onFocus={() => setShowDropdown(true)}
-                    disabled={selectedValidators.length >= 5}
-                  />
-                  
-                  {showDropdown && searchQuery && (
-                    <div className="dropdown-list">
-                      {filteredUsers.length > 0 ? (
-                        filteredUsers.map((user) => (
-                          <button 
-                            key={user.phone_number} 
-                            type="button" 
-                            className="dropdown-item" 
-                            onClick={() => addValidator(user)}
-                          >
-                            <span className="dropdown-item-name">{user.full_name}</span>
-                            <span className="dropdown-item-phone">{user.phone_number}</span>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="dropdown-empty">Aucun utilisateur trouvé</div>
-                      )}
-                    </div>
+              <div className="form-section">
+                <label className="form-label">Quorum *</label>
+                <input
+                  className="form-input"
+                  type="number"
+                  min="1"
+                  max={selectedValidators.length || 1}
+                  value={quorum}
+                  onChange={(e) => setQuorum(parseInt(e.target.value) || 1)}
+                  required
+                />
+              </div>
+
+              <div className="validators-section">
+                <h3 className="section-subtitle">
+                  Validateurs <span className="highlight">({selectedValidators.length}/5)</span>
+                </h3>
+                
+                <div className="selected-list">
+                  {selectedValidators.length === 0 ? (
+                    <p className="empty-msg">Aucun membre sélectionné.</p>
+                  ) : (
+                    selectedValidators.map((v) => (
+                      <div key={v.phone_number} className="validator-card">
+                        <div className="validator-info">
+                          <div className="validator-name">{v.full_name}</div>
+                          <div className="validator-details">Tél: {v.phone_number}</div>
+                        </div>
+                        <button type="button" className="remove-btn" onClick={() => removeValidator(v.phone_number)} title="Retirer">
+                          &times;
+                        </button>
+                      </div>
+                    ))
                   )}
                 </div>
+
+                <div className="add-validator-box">
+                  <div className="search-container">
+                    <input
+                      type="text"
+                      className="form-input search-input"
+                      placeholder="Rechercher par nom ou téléphone..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setShowDropdown(true);
+                      }}
+                      onFocus={() => setShowDropdown(true)}
+                      disabled={selectedValidators.length >= 5}
+                    />
+                    
+                    {showDropdown && searchQuery && (
+                      <div className="dropdown-list">
+                        {filteredUsers.length > 0 ? (
+                          filteredUsers.map((user) => (
+                            <button 
+                              key={user.phone_number} 
+                              type="button" 
+                              className="dropdown-item" 
+                              onClick={() => addValidator(user)}
+                            >
+                              <span className="dropdown-item-name">{user.full_name}</span>
+                              <span className="dropdown-item-phone">{user.phone_number}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="dropdown-empty">Aucun utilisateur trouvé</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
+
+              <button type="submit" className="submit-group-btn" disabled={loading || selectedValidators.length === 0}>
+                {loading ? "Chargement..." : "Confirmer"}
+              </button>
+            </form>
+          </>
+        )}
+
+        {showSuccessModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-icon">✅</div>
+              <h3>Demande envoyée !</h3>
+              <p>Le groupe <strong>{groupName}</strong> est en attente.</p>
+              <button className="modal-btn" onClick={() => navigate("/notifications")}>Continuer</button>
             </div>
-
-            <button type="submit" className="submit-group-btn" disabled={loading || selectedValidators.length === 0}>
-              {loading ? "Chargement..." : "Confirmer"}
-            </button>
-          </form>
-        </>
-      )}
-
-      {showSuccessModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-icon">✅</div>
-            <h3>Demande envoyée !</h3>
-            <p>Le groupe <strong>{groupName}</strong> est en attente.</p>
-            <button className="modal-btn" onClick={() => navigate("/notifications")}>Continuer</button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    <div className="rules-panel">
+      <div className="rules-panel-header">
+        <span className="rules-icon">📋</span>
+        <h3>Règles de gestion</h3>
+      </div>
+      <ul className="rules-list">
+        <li>Règle 1 — à définir</li>
+        <li>Règle 2 — à définir</li>
+        <li>Règle 3 — à définir</li>
+      </ul>
+    </div>
     </div>
   );
 }
