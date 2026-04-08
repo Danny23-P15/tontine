@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from groups.services.operation_service import User
+
 class CreateGroupRequestSerializer(serializers.Serializer):
     group_name = serializers.CharField(max_length=100)
     quorum = serializers.IntegerField(min_value=1)
@@ -58,3 +60,8 @@ class RespondAddValidatorSerializer(serializers.Serializer):
 
 class RemoveValidatorSerializer(serializers.Serializer):
     validator_phone_number = serializers.CharField()
+
+class UserSeriializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "full_name", "phone_number", "cin", "role", "date_joined"]

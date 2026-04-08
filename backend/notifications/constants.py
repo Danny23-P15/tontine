@@ -29,3 +29,6 @@ class OperationEvent(str, Enum):
     TRANSACTION_APPROVED = "transaction_approved"
     TRANSACTION_REJECTED = "transaction_rejected"
     TRANSACTION_EXECUTED = "transaction_executed"
+
+    #Superadmin
+    ADMIN_OVERRIDE = "admin_override"

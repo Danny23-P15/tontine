@@ -9,11 +9,7 @@ urlpatterns = [
     path("api/", include("groups.urls")),
     path("api/", include("operations.urls")),
     path("api/notifications/", include("notifications.urls")),
+    path("api/admin/", include("backend.apps.admin_panel.urls")),
 
 ]
 
-# def test(request):
-#     return HttpResponse("OK")
-
-# urlpatterns += [
-#     path("api/test/", test),

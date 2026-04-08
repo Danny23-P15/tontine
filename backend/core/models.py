@@ -28,3 +28,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.full_name} ({self.phone_number})"
+
+    @property
+    def is_superadmin(self):
+        return self.role == self.Role.SUPERADMIN
