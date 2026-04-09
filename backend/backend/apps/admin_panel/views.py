@@ -5,6 +5,7 @@ import logging
 
 from core.permission import IsSuperAdmin
 from groups.models import Operation
+from backend.apps.admin_panel.services import override_operation
 
 logger = logging.getLogger(__name__)
 
@@ -31,3 +32,25 @@ class AdminOperationsView(APIView):
         logger.info(f"IS SUPERADMIN = {request.user.is_superadmin}")
         # return Response({"message": "Bienvenue dans le panneau d'administration!"})
         return Response(data)
+    
+class AdminOverrideOperationAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+    def post(self, request, operation_id):
+        decision = request.data.get("decision")
+
+        try:
+            operation = Operation.objects.get(id=operation_id)
+        except Operation.DoesNotExist:
+            return Response({"detail": "Opération introuvable"}, status=404)
+
+        success, message = override_operation(
+            operation=operation,
+            admin_user=request.user,
+            decision=decision
+        )
+
+        if not success:
+            return Response({"detail": message}, status=400)
+
+        return Response({"detail": message}, status=200)

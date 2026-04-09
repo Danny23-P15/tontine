@@ -416,7 +416,11 @@ def respond_to_delete_group_request(
     return True, "Le groupe a été supprimé"
 
 def execute_remove_validator(operation: Operation) -> None:
-    validator_phone = operation.payload["validator_phone_to_remove"]
+    # Support both payload keys for backward compatibility
+    validator_phone = operation.payload.get("validator_phone_to_remove") or operation.payload.get("validator_phone_number")
+    
+    if not validator_phone:
+        raise KeyError("Missing validator phone number in operation payload")
 
     GroupMembership.objects.filter(
         group=operation.group,

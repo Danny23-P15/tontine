@@ -17,3 +17,4 @@ class AdminActionLog(models.Model):
 
     def __str__(self):
         return f"{self.admin.full_name} - {self.action} - {self.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
+1
