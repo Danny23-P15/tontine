@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("refresh", res.data.refresh);
 
     setToken(res.data.access);
-    setUser({ phone_number });
+    setUser(res.data.user);
   };
 
   const logout = () => {

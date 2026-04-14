@@ -11,7 +11,8 @@ import {
   FileText, 
   LogOut, 
   ShieldCheck,
-  DollarSign 
+  DollarSign,
+  Settings
 } from "lucide-react";
 import axios from "axios";
 import "../css/Sidebar.css";
@@ -67,10 +68,17 @@ function Sidebar() {
             <DollarSign size={18} className="icon" /> 
             <span className="link-text">Transactions</span>
           </NavLink>
-           {/* <NavLink to={`/groups/${group.id}/balance`} className="nav-link">
-             <ShieldCheck size={18} className="icon" />
-             <span className="link-text">Solde du groupe</span>
-           </NavLink> */}
+
+          {/* {user && user.is_superadmin && ( */}
+            <>
+              <p className="nav-section-title">Administration</p>
+              <NavLink to="/admin/operations" className="nav-link">
+                <Settings size={18} className="icon" /> 
+                <span className="link-text">Opérations</span>
+              </NavLink>
+            </>
+          {/* )} */}
+
         </nav>
         <button className="logout-btn" onClick={handleLogout}>
           <LogOut size={18} className="icon" />

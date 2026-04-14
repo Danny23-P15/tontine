@@ -1,3 +1,5 @@
+from urllib import request
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -13,6 +15,13 @@ class AdminOperationsView(APIView):
     permission_classes = [IsAuthenticated, IsSuperAdmin]
 
     def get(self, request):
+        print("=" * 50)
+        print("USER:", request.user)
+        print("AUTH:", request.user.is_authenticated)
+        print("ROLE:", request.user.role if hasattr(request.user, 'role') else "N/A")
+        print("IS_SUPERADMIN:", request.user.is_superadmin if hasattr(request.user, 'is_superadmin') else "N/A")
+        print("=" * 50)
+        
         operations = Operation.objects.all().order_by("-created_at")[:100]
 
         data = [
@@ -30,7 +39,7 @@ class AdminOperationsView(APIView):
         logger.info(f"USER = {request.user}")
         logger.info(f"ROLE = {request.user.role}")
         logger.info(f"IS SUPERADMIN = {request.user.is_superadmin}")
-        # return Response({"message": "Bienvenue dans le panneau d'administration!"})
+        print("✓ Response data prepared with", len(data), "operations")
         return Response(data)
     
 class AdminOverrideOperationAPIView(APIView):

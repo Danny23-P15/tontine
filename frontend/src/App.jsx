@@ -13,6 +13,8 @@ import InitiatedOperationsPage from "./pages/InitiatedOperationsPage";
 import TransactionsPage from "./pages/TransactionsPage";
 import GroupBalancePage from "./pages/GroupBalancePage";
 import GroupTransactionsPage from "./pages/GroupTransactionsPage";
+import OperationsList from "./pages/OperationsList";
+import AdminOperationsPage from "./pages/AdminOperationsPage";
 
 
 function App() {
@@ -130,6 +132,28 @@ function App() {
               <PrivateRoute>
                 <Layout>
                   <TransactionsPage />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/operations"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <OperationsList />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/admin/operations"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <AdminOperationsPage />
                 </Layout>
               </PrivateRoute>
             }

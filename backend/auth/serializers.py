@@ -21,5 +21,7 @@ class LoginSerializer(serializers.Serializer):
                 "phone_number": user.phone_number,
                 "full_name": user.full_name,
                 "email": user.email,
+                "role": user.role,
+                "is_superadmin": user.is_superadmin,
             }
         }

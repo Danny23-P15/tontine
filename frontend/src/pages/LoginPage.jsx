@@ -32,7 +32,8 @@ export default function LoginPage() {
         throw new Error(data.detail || "Identifiants invalides");
       }
 
-      localStorage.setItem("access_token", data.access);
+      localStorage.setItem("access", data.access);
+      localStorage.setItem("refresh", data.refresh);
       navigate("/groups");
     } catch (err) {
       setError(err.message);

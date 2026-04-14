@@ -1,4 +1,5 @@
 import axios from "axios";
+import api from "./axios";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -16,5 +17,10 @@ export const respondToOperation = async ({ operationId, decision }) => {
     }
   );
 
+  return response.data;
+};
+
+export const fetchAdminOperations = async () => {
+  const response = await api.get("/admin/operations/");
   return response.data;
 };
