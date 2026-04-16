@@ -166,11 +166,14 @@ def respond_to_add_validator_request(
     if max_possible_accept < group.quorum:
         # ❌ Quorum impossible à atteindre → rejet
         operation.mark_rejected()
-        notify_operation_status(
-            source=operation.group,
-            event=OperationEvent.ADD_VALIDATOR_REJECTED,
-            actor_phone=validator_phone
-        )
+        try:
+            notify_operation_status(
+                source=operation.group,
+                event=OperationEvent.ADD_VALIDATOR_REJECTED,
+                actor_phone=validator_phone
+            )
+        except Exception as e:
+            print(f"Erreur notification validateur rejeté: {str(e)}")
         return True, "Demande de validateur rejetée (quorum impossible)"
 
     # ✅ Quorum atteint
@@ -179,20 +182,28 @@ def respond_to_add_validator_request(
         validator_phone_to_add = payload["validator_phone_number"]
         cin = payload["cin"]
 
-        GroupMembership.objects.create(
-            group=operation.group,
-            phone_number=validator_phone_to_add,
-            cin=cin,
-            role=GroupRole.VALIDATOR
-        )
+        with transaction.atomic():
+            GroupMembership.objects.create(
+                group=operation.group,
+                phone_number=validator_phone_to_add,
+                cin=cin,
+                role=GroupRole.VALIDATOR
+            )
 
-        operation.mark_completed()
+            # Mettre à jour l'état du groupe après ajout du validateur
+            group.update_active_status()
+            
+            operation.mark_completed()
 
-        notify_operation_status(
-            source=operation,
-            event=OperationEvent.VALIDATOR_ADDED,
-            actor_phone=validator_phone_to_add,
-        )
+        try:
+            notify_operation_status(
+                source=operation,
+                event=OperationEvent.VALIDATOR_ADDED,
+                actor_phone=validator_phone_to_add,
+            )
+        except Exception as e:
+            # Log l'erreur mais ne pas échouer la requête
+            print(f"Erreur notification validateur ajouté: {str(e)}")
 
         return True, "Le validateur a été ajouté au groupe (Quorum atteint)"
 
@@ -268,11 +279,14 @@ def respond_to_remove_validator_request(
     if max_possible_accept < group.quorum:
         # ❌ Quorum impossible à atteindre → rejet
         operation.mark_rejected()
-        notify_operation_status(
-            source=operation,
-            event=OperationEvent.REMOVE_VALIDATOR_REJECTED,
-            actor_phone=validator_phone
-        )
+        try:
+            notify_operation_status(
+                source=operation,
+                event=OperationEvent.REMOVE_VALIDATOR_REJECTED,
+                actor_phone=validator_phone
+            )
+        except Exception as e:
+            print(f"Erreur notification validateur rejeté: {str(e)}")
         return True, "Suppression refusée (quorum impossible)"
 
     # if quorum reached, remove validator
@@ -290,27 +304,34 @@ def respond_to_remove_validator_request(
         except GroupMembership.DoesNotExist:
             return False, "Le validateur n’existe plus"
 
-        membership.left_at = timezone.now()
-        membership.save()
+        with transaction.atomic():
+            membership.left_at = timezone.now()
+            membership.save()
 
-        # recalculer état du groupe après départ
-        operation.group.update_active_status()
-        operation.mark_completed()
+            # recalculer état du groupe après départ
+            operation.group.update_active_status()
+            operation.mark_completed()
 
-        notify_operation_status(
-            source=operation,
-            event=OperationEvent.VALIDATOR_REMOVED,
-            actor_phone=phone_to_remove
-        )
+        try:
+            notify_operation_status(
+                source=operation,
+                event=OperationEvent.VALIDATOR_REMOVED,
+                actor_phone=phone_to_remove
+            )
+        except Exception as e:
+            print(f"Erreur notification validateur supprimé: {str(e)}")
 
         return True, "Le validateur a été supprimé du groupe (Quorum atteint)"
 
     # if quorum not yet reached but still possible
-    notify_operation_status(
-        source=operation,
-        event=OperationEvent.VALIDATION_RECORDED,
-        actor_phone=validator_phone
-    )
+    try:
+        notify_operation_status(
+            source=operation,
+            event=OperationEvent.VALIDATION_RECORDED,
+            actor_phone=validator_phone
+        )
+    except Exception as e:
+        print(f"Erreur notification validation enregistrée: {str(e)}")
     
     return True, "Votre réponse a été enregistrée"
 
@@ -379,11 +400,14 @@ def respond_to_delete_group_request(
         operation.status = OperationStatus.REJECTED
         operation.save()
 
-        notify_operation_status(
-            source=operation,
-            event=OperationEvent.DELETE_GROUP_REJECTED,
-            actor_phone=validator_phone
-        )
+        try:
+            notify_operation_status(
+                source=operation,
+                event=OperationEvent.DELETE_GROUP_REJECTED,
+                actor_phone=validator_phone
+            )
+        except Exception as e:
+            print(f"Erreur notification suppression rejetée: {str(e)}")
 
         return True, "Suppression refusée"
 
@@ -394,24 +418,31 @@ def respond_to_delete_group_request(
     ).count()
 
     if accepted < total:
-        notify_operation_status(
-            source=operation,
-            event=OperationEvent.VALIDATION_RECORDED,
-            actor_phone=validator_phone
-        )
+        try:
+            notify_operation_status(
+                source=operation,
+                event=OperationEvent.VALIDATION_RECORDED,
+                actor_phone=validator_phone
+            )
+        except Exception as e:
+            print(f"Erreur notification validation enregistrée: {str(e)}")
         return True, "Validation enregistrée"
 
     # ✅ Tous acceptés → suppression réelle
     group = operation.group
-    group.mark_as_deleted()
+    with transaction.atomic():
+        group.mark_as_deleted()
 
-    operation.status = OperationStatus.COMPLETED
-    operation.save()
+        operation.status = OperationStatus.COMPLETED
+        operation.save()
 
-    notify_operation_status(
-        source=operation,
-        event=OperationEvent.DELETE_GROUP_COMPLETED
-    )
+    try:
+        notify_operation_status(
+            source=operation,
+            event=OperationEvent.DELETE_GROUP_COMPLETED
+        )
+    except Exception as e:
+        print(f"Erreur notification suppression complétée: {str(e)}")
 
     return True, "Le groupe a été supprimé"
 

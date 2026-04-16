@@ -27,7 +27,7 @@ function GroupDetailPage() {
   const [balanceError, setBalanceError] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
 
-  const getToken = () => localStorage.getItem("access_token");
+  const getToken = () => localStorage.getItem("access");
 
   // Charger le groupe au montage
   const loadGroup = async () => {

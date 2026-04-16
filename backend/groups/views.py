@@ -51,6 +51,41 @@ respond_to_transaction_request = ov.respond_to_transaction_request
 class CreateGroupRequestAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        # Récupérer les créations de groupe en attente initiées par l'utilisateur
+        temp_groups = TemporaryGroupCreation.objects.filter(
+            initiator_phone_number=request.user.phone_number,
+            is_cancelled=False
+        ).order_by("-created_at")
+
+        results = []
+        now = timezone.now()
+
+        for tg in temp_groups:
+            accepted_count = tg.validators.filter(has_accepted=True).count()
+            total_validators = tg.validators.count()
+
+            # Déterminer le statut
+            if tg.expires_at and tg.expires_at < now:
+                status_val = "EXPIRED"
+            elif accepted_count >= tg.quorum:
+                status_val = "APPROVED"
+            else:
+                status_val = "PENDING"
+
+            results.append({
+                "id": tg.id,
+                "group_name": tg.group_name,
+                "quorum": tg.quorum,
+                "created_at": tg.created_at,
+                "expires_at": tg.expires_at,
+                "approved_count": accepted_count,
+                "total_validators": total_validators,
+                "status": status_val,
+            })
+
+        return Response({"results": results}, status=status.HTTP_200_OK)
+
     def post(self, request):
         serializer = CreateGroupRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -82,6 +117,35 @@ class CreateGroupRequestAPIView(APIView):
 
 class RespondGroupCreationAPIView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Récupérer les créations de groupe en attente pour le validateur actuel
+        from groups.models import TemporaryGroupValidator
+        
+        pending_validators = TemporaryGroupValidator.objects.filter(
+            phone_number=request.user.phone_number,
+            has_accepted__isnull=True  # Pas encore répondu
+        ).select_related('temp_group')
+        
+        results = []
+        for tv in pending_validators:
+            temp_group = tv.temp_group
+            if not temp_group.is_cancelled:
+                accepted_count = temp_group.validators.filter(has_accepted=True).count()
+                total_validators = temp_group.validators.count()
+                
+                results.append({
+                    "id": temp_group.id,
+                    "group_name": temp_group.group_name,
+                    "initiator_phone_number": temp_group.initiator_phone_number,
+                    "quorum": temp_group.quorum,
+                    "created_at": temp_group.created_at,
+                    "expires_at": temp_group.expires_at,
+                    "approved_count": accepted_count,
+                    "total_validators": total_validators,
+                })
+        
+        return Response({"results": results}, status=status.HTTP_200_OK)
 
     def post(self, request):
         serializer = RespondGroupCreationSerializer(data=request.data)
@@ -368,6 +432,50 @@ class MyInitiatedOperationsAPIView(APIView):
             })
 
         return Response(data)
+    
+class CancelGroupCreationAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        temp_group_id = request.data.get("temp_group_id")
+        
+        try:
+            temp_group = TemporaryGroupCreation.objects.get(id=temp_group_id)
+        except TemporaryGroupCreation.DoesNotExist:
+            return Response(
+                {"detail": "Création de groupe introuvable"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Vérifier que c'est l'initiateur
+        if temp_group.initiator_phone_number != request.user.phone_number:
+            return Response(
+                {"detail": "Vous n'avez pas la permission d'annuler cette création"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Vérifier que ce n'est pas déjà annulé ou approuvé
+        if temp_group.is_cancelled:
+            return Response(
+                {"detail": "Cette création a déjà été annulée"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        validators_accepted = temp_group.validators.filter(has_accepted=True).count()
+        if validators_accepted >= temp_group.quorum:
+            return Response(
+                {"detail": "Cette création a atteint le quorum et ne peut plus être annulée"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Annuler la création
+        temp_group.is_cancelled = True
+        temp_group.save(update_fields=["is_cancelled"])
+        
+        return Response(
+            {"detail": "Création de groupe annulée avec succès"},
+            status=status.HTTP_200_OK
+        )
     
 class CancelOperationAPIView(APIView):
     permission_classes = [IsAuthenticated]

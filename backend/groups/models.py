@@ -44,7 +44,20 @@ class ValidationGroup(models.Model):
             self.memberships.filter(
                 left_at__isnull=True
             ).update(is_active=new_status)
-
+    def mark_as_deleted(self):
+        """Marque le groupe comme supprimé (soft delete) et tous les membres comme sortis"""
+        # Marquer tous les membres actifs comme ayant quitté
+        self.memberships.filter(
+            left_at__isnull=True
+        ).update(
+            left_at=timezone.now(),
+            is_active=False
+        )
+        
+        # Marquer le groupe comme supprimé
+        self.deleted_at = timezone.now()
+        self.is_active = False
+        self.save(update_fields=["deleted_at", "is_active"])
 
 class GroupMembership(models.Model):
     group = models.ForeignKey(

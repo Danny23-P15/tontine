@@ -684,6 +684,49 @@
   border-radius: 8px;
 }
 
+/* Status Badge Styles */
+.status-info {
+  color: #999;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  margin: 15px 0 10px 0;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-pending {
+  background: linear-gradient(135deg, #ff9800, #ff7043);
+  color: #fff;
+}
+
+.status-approved {
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: #fff;
+}
+
+.status-expired {
+  background: linear-gradient(135deg, #9e9e9e, #757575);
+  color: #fff;
+}
+
+.status-rejected {
+  background: linear-gradient(135deg, #f44336, #e53935);
+  color: #fff;
+}
+
+.status-cancelled {
+  background: linear-gradient(135deg, #607d8b, #455a64);
+  color: #fff;
+}
+
 /* Responsive : empiler en colonne sur mobile */
 @media (max-width: 768px) {
   .group-page-wrapper {

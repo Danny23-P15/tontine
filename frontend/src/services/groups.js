@@ -10,13 +10,18 @@ export const getGroupDetail = async (groupId) => {
     return response.data;
 };
 
+export const getInitiatedGroupCreations = async () => {
+    const response = await api.get("/groups/create-request/");
+    return response.data;
+};
+
 export const getPendingGroupCreations = async () => {
     const response = await api.get("/groups/creation/pending/");
     return response.data;
 };
 
 export const cancelGroupCreation = async (tempGroupId) => {
-    const response = await api.post("/groups/creation/pending/", {
+    const response = await api.post("/groups/creation/cancel/", {
         temp_group_id: tempGroupId,
     });
     return response.data;
@@ -29,7 +34,7 @@ export async function requestRemoveValidator(groupId, validatorPhone) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        Authorization: `Bearer ${localStorage.getItem("access")}`,
       },
       body: JSON.stringify({
         validator_phone_number: validatorPhone,

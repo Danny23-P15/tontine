@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getMyGroups, getPendingGroupCreations, cancelGroupCreation } from "../services/groups";
+import { getMyGroups, getInitiatedGroupCreations, cancelGroupCreation } from "../services/groups";
 import "../css/groupCreation.css";
 
 function CreateGroupPage() {
@@ -19,11 +19,11 @@ function CreateGroupPage() {
   const [isInitiator, setIsInitiator] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [pendingCreations, setPendingCreations] = useState([]);
-  const [loadingPending, setLoadingPending] = useState(true);
-  const [cancellingPending, setCancellingPending] = useState(false);
+  const [initiatedCreations, setInitiatedCreations] = useState([]);
+  const [loadingCreations, setLoadingCreations] = useState(true);
+  const [cancellingCreation, setCancellingCreation] = useState(false);
 
-  const token = localStorage.getItem("access_token");
+  const token = localStorage.getItem("access");
 
   // Charger les rôles et les utilisateurs au montage
   useEffect(() => {
@@ -35,14 +35,14 @@ function CreateGroupPage() {
         setIsInitiator(groups.some(group => group.role === "INITIATOR"));
         setLoadingRoles(false);
 
-        // 2. Charger les demandes de création en attente
+        // 2. Charger les créations de groupe initiées par l'utilisateur
         try {
-          const pendingData = await getPendingGroupCreations();
-          setPendingCreations(pendingData.results || []);
+          const creationData = await getInitiatedGroupCreations();
+          setInitiatedCreations(creationData.results || []);
         } catch (err) {
-          console.error("Erreur chargement demandes en attente:", err);
+          console.error("Erreur chargement créations initiées:", err);
         } finally {
-          setLoadingPending(false);
+          setLoadingCreations(false);
         }
 
         // 3. Charger les utilisateurs pour la recherche
@@ -64,18 +64,18 @@ function CreateGroupPage() {
 
   // --- FONCTIONS DE LOGIQUE ---
 
-  const handleCancelPending = async () => {
-    if (!pendingCreations[0]) return;
+  const handleCancelCreation = async () => {
+    if (!initiatedCreations[0]) return;
     
-    setCancellingPending(true);
+    setCancellingCreation(true);
     try {
-      await cancelGroupCreation(pendingCreations[0].id);
-      setPendingCreations([]);
+      await cancelGroupCreation(initiatedCreations[0].id);
+      setInitiatedCreations([]);
     } catch (err) {
       console.error("Erreur annulation:", err);
       setError("Erreur lors de l'annulation de la demande");
     } finally {
-      setCancellingPending(false);
+      setCancellingCreation(false);
     }
   };
 
@@ -124,7 +124,6 @@ function CreateGroupPage() {
       quorum: Number(quorum),
       validators: selectedValidators.map(v => ({
         phone_number: v.phone_number,
-        cin: v.cin,
       })),
     };
 
@@ -139,7 +138,26 @@ function CreateGroupPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Erreur lors de la création");
+      if (!res.ok) {
+        // Chercher le message d'erreur selon le format de réponse
+        let errorMessage = "Erreur lors de la création";
+        
+        if (data.message) {
+          errorMessage = data.message;
+        } else if (data.detail) {
+          errorMessage = data.detail;
+        } else if (typeof data === 'object') {
+          // Si c'est une erreur de validation, prendre la première erreur
+          const firstErrorKey = Object.keys(data)[0];
+          if (firstErrorKey && Array.isArray(data[firstErrorKey])) {
+            errorMessage = data[firstErrorKey][0];
+          } else if (firstErrorKey && typeof data[firstErrorKey] === 'string') {
+            errorMessage = data[firstErrorKey];
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
 
       setShowSuccessModal(true);
     } catch (err) {
@@ -154,30 +172,31 @@ function CreateGroupPage() {
       <div className="group-page-container">
         <h2 className="group-page-title">Création de groupe</h2>
 
-        {loadingRoles || loadingPending ? (
+        {loadingRoles || loadingCreations ? (
           <div className="loading-msg">Chargement en cours...</div>
-        ) : pendingCreations.length > 0 ? (
+        ) : initiatedCreations.length > 0 ? (
           <div className="pending-creation-modal">
             <div className="pending-modal-content">
               <div className="pending-icon">⏳</div>
               <h3>Création de groupe en cours</h3>
               <p>Vous avez déjà une demande de création de groupe en attente de validation :</p>
               <div className="pending-group-info">
-                <h4>{pendingCreations[0].group_name}</h4>
-                <p className="validators-info">{pendingCreations[0].accepted_count}/{pendingCreations[0].validators_count} validateurs ont accepté</p>
-                <p className="quorum-info">Quorum requis : {pendingCreations[0].quorum}</p>
+                <h4>{initiatedCreations[0].group_name}</h4>
+                <p className="validators-info">{initiatedCreations[0].approved_count}/{initiatedCreations[0].total_validators} validateurs ont accepté</p>
+                <p className="quorum-info">Quorum requis : {initiatedCreations[0].quorum}</p>
+                <p className="status-info">Statut: <span className={`status-badge status-${initiatedCreations[0].status.toLowerCase()}`}>{initiatedCreations[0].status}</span></p>
               </div>
               <p className="info-text">Veuillez attendre que tous les validateurs répondent avant de créer un nouveau groupe.</p>
               <div className="pending-modal-buttons">
-                <button className="modal-btn main-btn" onClick={() => navigate("/notifications")}>
-                  Voir les notifications
+                <button className="modal-btn main-btn" onClick={() => navigate("/initiated-operations")}>
+                  Voir le statut détaillé
                 </button>
                 <button 
                   className="modal-btn cancel-btn" 
-                  onClick={handleCancelPending}
-                  disabled={cancellingPending}
+                  onClick={handleCancelCreation}
+                  disabled={cancellingCreation || initiatedCreations[0].status === "APPROVED"}
                 >
-                  {cancellingPending ? "Annulation..." : "Annuler la demande"}
+                  {cancellingCreation ? "Annulation..." : "Annuler la demande"}
                 </button>
               </div>
             </div>

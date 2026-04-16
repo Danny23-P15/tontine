@@ -39,14 +39,6 @@
   grid-auto-flow: dense;
 }
 
-/* Effet escalier sur les cartes */
-.group-card-premium:nth-child(1) { transform: translateY(0px); }
-.group-card-premium:nth-child(2) { transform: translateY(50px); }
-.group-card-premium:nth-child(3) { transform: translateY(100px); }
-.group-card-premium:nth-child(4) { transform: translateY(60px); }
-.group-card-premium:nth-child(5) { transform: translateY(80px); }
-.group-card-premium:nth-child(n+6) { transform: translateY(100px); }
-
 /* Carte Premium */
 .group-card-premium {
   background: var(--black-card);

@@ -6,6 +6,7 @@ urlpatterns = [
     path("groups/create-request/", CreateGroupRequestAPIView.as_view()),
     path("groups/creation/pending/", RespondGroupCreationAPIView.as_view()),
     path("groups/creation/respond/", RespondGroupCreationAPIView.as_view()),
+    path("groups/creation/cancel/", CancelGroupCreationAPIView.as_view()),
     path("groups/my-groups/", MyGroupsAPIView.as_view()),
     path("groups/my-initiator-groups/", MyInitiatorGroupsAPIView.as_view()),
     path("groups/<int:group_id>/", GroupDetailAPIView.as_view()), 

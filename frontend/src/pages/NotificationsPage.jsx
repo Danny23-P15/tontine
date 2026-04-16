@@ -37,7 +37,7 @@ export default function NotificationsPage() {
         method: method || "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          Authorization: `Bearer ${localStorage.getItem("access")}`,
         },
         body: JSON.stringify({ ...payload, accept: accept }),
       });
