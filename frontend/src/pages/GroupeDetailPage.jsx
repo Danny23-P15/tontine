@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getGroupDetail, requestRemoveValidator, requestDeleteGroup } from "../services/groups";
 import "../css/GroupDetailPage.css";
 import axios from "axios";
+import { DollarSign } from "lucide-react";
 
 function GroupDetailPage() {
   const { groupId } = useParams();
@@ -172,7 +173,8 @@ function GroupDetailPage() {
           </button>
 
           <button className="btn-view-balance" onClick={() => navigate(`/groups/${group.id}/transactions`)}>
-            📊 Voir les transactions
+            <DollarSign size={18} className="icon" />
+            Voir les transactions
           </button>
 
           {group.me?.role === "INITIATOR" && !group.pending_deletion && !group.has_pending_operations && (

@@ -113,8 +113,8 @@ function CreateGroupPage() {
       return;
     }
 
-    if (quorum > selectedValidators.length) { // Correction logique : quorum peut être égal au nombre de validateurs
-      setError("Le quorum ne peut pas dépasser le nombre de validateurs");
+    if (quorum >= selectedValidators.length) {
+      setError("Le quorum doit être strictement inférieur au nombre de validateurs");
       setLoading(false);
       return;
     }
@@ -231,7 +231,7 @@ function CreateGroupPage() {
                   className="form-input"
                   type="number"
                   min="1"
-                  max={selectedValidators.length || 1}
+                  max={Math.max(1, selectedValidators.length - 1) || 1}
                   value={quorum}
                   onChange={(e) => setQuorum(parseInt(e.target.value) || 1)}
                   required
