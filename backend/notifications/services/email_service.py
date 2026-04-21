@@ -11,16 +11,7 @@ logger = logging.getLogger(__name__)
 def send_templated_email(subject, template_name, context, recipients):
     """
     Envoie un email avec template HTML.
-    En développement, les emails sont loggés dans la console.
     """
-    
-    # 🔧 En développement, on n'envoie pas de vrais emails
-    if settings.DEBUG:
-        logger.info(f"[DEV MODE] Email non envoyé - Sujet: {subject}")
-        logger.info(f"[DEV MODE] Destinataires: {recipients}")
-        logger.info(f"[DEV MODE] Template: {template_name}")
-        logger.info(f"[DEV MODE] Contexte: {context}")
-        return True
     
     try:
         html_content = render_to_string(template_name, context)
