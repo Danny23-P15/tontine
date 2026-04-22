@@ -1,18 +1,17 @@
 # groups/services/operation_service.py
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from django.utils import timezone
 from django.db import transaction
-from datetime import timedelta
 from groups.services.group_rules import *
 from groups.models import Operation, OperationType, OperationStatus, GroupMembership, GroupRole, OperationValidation, ValidationStatus
-from django.utils import timezone
 import uuid
 from notifications.services.operation_notifications import notify_operation_status
 from notifications.constants import OperationEvent
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from notifications.services.email_service import send_templated_email
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 User = get_user_model()
 
@@ -32,6 +31,13 @@ from groups.services.group_rules import can_add_validator, can_remove_validator
 from groups.services.group_rules import can_delete_group
 
 import uuid
+
+
+def calculate_operation_expiration(days: int = 2):
+    today = datetime.now(dt_timezone.utc).date()
+    expires_date = today + timedelta(days=days)
+    expires_at = datetime.combine(expires_date, time(0, 0, 0), tzinfo=dt_timezone.utc)
+    return expires_at
 
 
 def create_operation(
@@ -66,7 +72,7 @@ def create_operation(
     if not validators.exists():
         return False, "Aucun validateur actif dans ce groupe", None
 
-    expires_at = timezone.now() + timedelta(hours=48)
+    expires_at = calculate_operation_expiration(days=2)
 
     # 4️⃣ création atomique
     with transaction.atomic():
@@ -126,7 +132,7 @@ def request_add_validator(
                 "cin": validator_cin
             },
             status=OperationStatus.PENDING,
-            expires_at=timezone.now() + timedelta(hours=48)
+            expires_at=calculate_operation_expiration(days=2)
         )
 
         validators = group.memberships.filter(
@@ -211,7 +217,7 @@ def request_remove_validator(
                 "validator_phone_number": validator_phone,
             },
             status=OperationStatus.PENDING,
-            expires_at=timezone.now() + timezone.timedelta(hours=48)
+            expires_at=calculate_operation_expiration(days=2)
         )
 
         validators = group.memberships.filter(
@@ -291,7 +297,7 @@ def create_remove_validator_operation(
         payload={
             "validator_phone_to_remove": validator_phone_to_remove
         },
-        expires_at=timezone.now() + timedelta(hours=48)
+        expires_at=calculate_operation_expiration(days=2)
     )
 
     # 3️⃣ récupérer les validateurs concernés
@@ -335,7 +341,7 @@ def create_delete_group_operation(
         initiator_phone_number=initiator_phone,
         operation_type=OperationType.DELETE_GROUP,
         reference=f"OP-DEL-{uuid.uuid4().hex[:8]}",
-        expires_at=timezone.now() + timezone.timedelta(hours=48)
+        expires_at=calculate_operation_expiration(days=2)
     )
 
     # créer les validations (TOUS les validateurs)
@@ -405,7 +411,7 @@ def request_delete_group(*, group: ValidationGroup, initiator_phone: str):
         payload={},
         status=OperationStatus.PENDING,
         reference=generate_reference(prefix="OP-DEL"),
-        expires_at=timezone.now() + timedelta(hours=24)
+        expires_at=calculate_operation_expiration(days=1)
     )
 
     # 5️⃣ Créer validations
@@ -502,7 +508,7 @@ def request_transaction(
                 "reason": reason
             },
             status=OperationStatus.PENDING,
-            expires_at=timezone.now() + timezone.timedelta(hours=48)
+            expires_at=calculate_operation_expiration(days=2)
         )
 
         # Créer l'objet Transaction

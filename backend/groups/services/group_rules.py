@@ -31,6 +31,20 @@ def get_user_group_stats(phone_number: str) -> dict:
     }
 
 
+def has_pending_non_transaction_operations(
+    group: ValidationGroup,
+    initiator_phone: str
+) -> bool:
+    
+    return Operation.objects.filter(
+        group=group,
+        initiator_phone_number=initiator_phone,
+        status=OperationStatus.PENDING,
+    ).exclude(
+        operation_type=OperationType.TRANSACTION
+    ).exists()
+
+
 def can_create_group(phone_number: str) -> tuple[bool, str | None]:
     stats = get_user_group_stats(phone_number)
     active_request_exists = TemporaryGroupCreation.objects.filter(
@@ -91,6 +105,10 @@ def can_add_validator(
     if initiator_phone == validator_phone:
         return False, "Vous ne pouvez pas vous ajouter vous-même"
 
+    # Vérifier s'il y a une opération non-transaction en attente
+    if has_pending_non_transaction_operations(group, initiator_phone):
+        return False, "Une opération est déjà en attente. Veuillez attendre sa résolution avant d'en initier une nouvelle."
+
     # CIN déjà utilisé dans ce groupe
     if group.memberships.filter(
         cin=validator_cin,
@@ -119,6 +137,11 @@ def can_remove_validator(
     group: ValidationGroup,
     validator_phone_to_remove: str
 ) -> tuple[bool, str | None]:
+
+    # Vérifier s'il y a une opération non-transaction en attente
+    initiator_phone = group.initiator_phone_number
+    if has_pending_non_transaction_operations(group, initiator_phone):
+        return False, "Une opération est déjà en attente. Veuillez attendre sa résolution avant d'en initier une nouvelle."
 
     # 1️⃣ vérifier que le validateur existe
     try:
@@ -158,6 +181,10 @@ def can_delete_group(
 
     if group.initiator_phone_number != initiator_phone:
         return False, "Seul l’initiateur peut supprimer le groupe"
+
+    # Vérifier s'il y a une opération non-transaction en attente
+    if has_pending_non_transaction_operations(group, initiator_phone):
+        return False, "Une opération est déjà en attente. Veuillez attendre sa résolution avant d'en initier une nouvelle."
 
     if not group.is_active:
         return False, "Le groupe n’est pas actif"
