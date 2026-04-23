@@ -20,6 +20,10 @@ app.conf.beat_schedule = {
         'task': 'notifications.tasks.cleanup_old_email_logs',
         'schedule': crontab(hour=2, minute=0),  # Daily at 2 AM
     },
+    'cleanup-old-notifications': {
+        'task': 'notifications.tasks.cleanup_old_notifications',
+        'schedule': crontab(hour=3, minute=0),  # Daily at 3 AM
+    },
 }
 
 @app.task(bind=True)

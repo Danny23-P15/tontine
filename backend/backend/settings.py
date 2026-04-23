@@ -136,8 +136,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
-
+TIME_ZONE = 'Indian/Antananarivo'  # ✅ UTC+3, timezone valide pour Madagascar
 USE_I18N = True
 
 USE_TZ = True
@@ -209,3 +208,5 @@ CHANNEL_LAYERS = {
         "BACKEND": 'channels.layers.InMemoryChannelLayer',
     },
 }
+
+NOTIFICATION_RETENTION_DAYS = 3

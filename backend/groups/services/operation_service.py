@@ -33,10 +33,11 @@ from groups.services.group_rules import can_delete_group
 import uuid
 
 
-def calculate_operation_expiration(days: int = 2):
-    today = datetime.now(dt_timezone.utc).date()
-    expires_date = today + timedelta(days=days)
-    expires_at = datetime.combine(expires_date, time(0, 0, 0), tzinfo=dt_timezone.utc)
+def calculate_operation_expiration(days: int = 2) -> datetime:
+    local_tz = timezone.get_current_timezone()           # UTC+3 (selon TIME_ZONE dans settings.py)
+    now_local = timezone.localtime(timezone.now(), local_tz)  # heure locale
+    future_date = now_local + timedelta(days=days)
+    expires_at = future_date.replace(hour=0, minute=0, second=0, microsecond=0)
     return expires_at
 
 
