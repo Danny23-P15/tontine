@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getGroupDetail, requestRemoveValidator, requestDeleteGroup } from "../services/groups";
 import "../css/GroupDetailPage.css";
 import axios from "axios";
-import { DollarSign } from "lucide-react";
+import { DollarSign, Trash2, Send } from "lucide-react";
 
 function GroupDetailPage() {
   const { groupId } = useParams();
@@ -17,6 +17,7 @@ function GroupDetailPage() {
 
   // États des Modaux & Feedback
   const [showValidator, setShowValidator] = useState(false);
+  const [showCreateTransaction, setShowCreateTransaction] = useState(false);
   const [statusModal, setStatusModal] = useState({ open: false, message: "", isError: false });
   const [confirmModal, setConfirmModal] = useState({ open: false, type: null, data: null });
   const [isProcessing, setIsProcessing] = useState(false);
@@ -27,6 +28,13 @@ function GroupDetailPage() {
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [balanceError, setBalanceError] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
+
+  // États pour créer une transaction
+  const [transactionForm, setTransactionForm] = useState({
+    recipient: "",
+    amount: "",
+    description: ""
+  });
 
   const getToken = () => localStorage.getItem("access");
 
@@ -140,6 +148,35 @@ function GroupDetailPage() {
     }
   };
 
+  const handleCreateTransaction = async () => {
+    if (!transactionForm.recipient || !transactionForm.amount) {
+      setStatusModal({ open: true, message: "Veuillez remplir les champs obligatoires", isError: true });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const payload = {
+        phone_number: transactionForm.recipient,
+        amount: parseFloat(transactionForm.amount),
+        reason: transactionForm.description || ""
+      };
+
+      await axios.post(`http://127.0.0.1:8000/api/groups/${group.id}/transactions/request/`, payload, {
+        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+      });
+
+      setShowCreateTransaction(false);
+      setTransactionForm({ recipient: "", amount: "", description: "" });
+      setStatusModal({ open: true, message: "Transaction créée avec succès", isError: false });
+      loadGroup();
+    } catch (err) {
+      setStatusModal({ open: true, message: err.response?.data?.detail || "Erreur lors de la création de la transaction", isError: true });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (loading) return <div className="page-msg">Chargement du groupe...</div>;
   if (error) return <div className="page-msg error">{error}</div>;
 
@@ -172,10 +209,16 @@ function GroupDetailPage() {
             {loadingBalance ? "⏳ Chargement..." : showBalance ? "Masquer le solde" : "Voir le solde du groupe"}
           </button>
 
-          <button className="btn-view-balance" onClick={() => navigate(`/groups/${group.id}/transactions`)}>
-            <DollarSign size={18} className="icon" />
-            Voir les transactions
-          </button>
+          <div className="buttons-row">
+            <button className="btn-view-balance" onClick={() => navigate(`/groups/${group.id}/transactions`)}>
+              <DollarSign size={18} className="icon" />
+              Voir les transactions
+            </button>
+            <button className="btn-view-balance" onClick={() => setShowCreateTransaction(true)}>
+              <Send size={18} className="icon" />
+              Créer une transaction
+            </button>
+          </div>
 
           {group.me?.role === "INITIATOR" && !group.pending_deletion && !group.has_pending_operations && (
             <button className="delete-group-link" onClick={() => setConfirmModal({ open: true, type: 'DELETE_GROUP' })}>
@@ -210,7 +253,7 @@ function GroupDetailPage() {
                 <div className="member-tag-wrapper">
                   <span className={`role-tag ${member.role.toLowerCase()}`}>{member.role}</span>
                   {member.role === "VALIDATOR" && group.me?.role === "INITIATOR" && (
-                    <button className="btn-remove-member" onClick={() => setConfirmModal({ open: true, type: 'REMOVE_VALIDATOR', data: member.phone_number })}>✕</button>
+                    <button className="btn-remove-member" onClick={() => setConfirmModal({ open: true, type: 'REMOVE_VALIDATOR', data: member.phone_number })}><Trash2 size={18} className="icon" /></button>
                   )}
                 </div>
               </div>
@@ -296,6 +339,85 @@ function GroupDetailPage() {
                 {isProcessing ? <span className="spinner-mini"></span> : "Confirmer"}
               </button>
               <button className="btn-cancel" onClick={() => setConfirmModal({ open: false })} disabled={isProcessing}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL CRÉER TRANSACTION --- */}
+      {showCreateTransaction && (
+        <div className="validator-overlay">
+          <div className="validator-modal">
+            <h4>Créer une Transaction</h4>
+            <p>Envoyez de l'argent à un destinataire</p>
+            
+            <input
+              type="text"
+              placeholder="Destinataire (nom ou téléphone)"
+              value={transactionForm.recipient}
+              onChange={(e) => setTransactionForm({ ...transactionForm, recipient: e.target.value })}
+              disabled={isProcessing}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "#2d2d35",
+                border: "1px solid #3f3f46",
+                borderRadius: "10px",
+                color: "white",
+                fontSize: "1rem",
+                marginBottom: "1rem",
+                outline: "none",
+                boxSizing: "border-box"
+              }}
+            />
+
+            <input
+              type="number"
+              placeholder="Montant (MGA)"
+              value={transactionForm.amount}
+              onChange={(e) => setTransactionForm({ ...transactionForm, amount: e.target.value })}
+              disabled={isProcessing}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "#2d2d35",
+                border: "1px solid #3f3f46",
+                borderRadius: "10px",
+                color: "white",
+                fontSize: "1rem",
+                marginBottom: "1rem",
+                outline: "none",
+                boxSizing: "border-box"
+              }}
+            />
+
+            <textarea
+              placeholder="Description (optionnelle)"
+              value={transactionForm.description}
+              onChange={(e) => setTransactionForm({ ...transactionForm, description: e.target.value })}
+              disabled={isProcessing}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "#2d2d35",
+                border: "1px solid #3f3f46",
+                borderRadius: "10px",
+                color: "white",
+                fontSize: "1rem",
+                marginBottom: "1rem",
+                outline: "none",
+                boxSizing: "border-box",
+                minHeight: "80px",
+                fontFamily: "inherit",
+                resize: "vertical"
+              }}
+            />
+
+            <div className="modal-actions">
+              <button className="btn-confirm" onClick={handleCreateTransaction} disabled={isProcessing || !transactionForm.recipient || !transactionForm.amount}>
+                {isProcessing ? <span className="spinner-mini"></span> : "Créer"}
+              </button>
+              <button className="btn-cancel" onClick={() => setShowCreateTransaction(false)} disabled={isProcessing}>Annuler</button>
             </div>
           </div>
         </div>
