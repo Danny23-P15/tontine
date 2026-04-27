@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { BarChart3 } from "lucide-react";
 import Layout from "../components/Layout";
 import Sidebar from "../components/Sidebar";
 import "../css/GroupDetailPage.css";
 
 export default function GroupTransactionsPage() {
   const { groupId } = useParams();
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -88,7 +90,31 @@ export default function GroupTransactionsPage() {
     <Layout>
       <Sidebar />
       <div className="page-content">
-        <h2 className="history">Historique des transactions</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <h2 className="history">Historique des transactions</h2>
+          <button
+            onClick={() => navigate(`/groups/${groupId}/stats`)}
+            style={{
+              backgroundColor: "#6366f1",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              padding: "10px 16px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontSize: "14px",
+              fontWeight: "500",
+              transition: "background-color 0.3s ease"
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = "#4f46e5"}
+            onMouseLeave={(e) => e.target.style.backgroundColor = "#6366f1"}
+          >
+            <BarChart3 size={18} />
+            Voir les statistiques
+          </button>
+        </div>
 
         {/* ── Barre de filtres ── */}
         <div className="filters-bar">

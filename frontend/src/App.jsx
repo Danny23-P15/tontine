@@ -15,6 +15,7 @@ import GroupBalancePage from "./pages/GroupBalancePage";
 import GroupTransactionsPage from "./pages/GroupTransactionsPage";
 import OperationsList from "./pages/OperationsList";
 import AdminOperationsPage from "./pages/AdminOperationsPage";
+import GroupStatsPage from "./pages/GroupStatsPage";
 
 
 function App() {
@@ -132,6 +133,17 @@ function App() {
               <PrivateRoute>
                 <Layout>
                   <TransactionsPage />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/groups/:groupId/stats"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <GroupStatsPage />
                 </Layout>
               </PrivateRoute>
             }

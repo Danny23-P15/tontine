@@ -606,3 +606,125 @@ class GroupTransactionsAPIView(APIView):
             "count": len(data),
             "results": data
         })
+
+
+class GroupTransactionsStatsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, group_id):
+        from django.db.models import Sum, Count, Avg, Q
+        from django.utils import timezone
+        from datetime import timedelta
+
+        # 1️⃣ Vérifier groupe
+        group = get_object_or_404(ValidationGroup, id=group_id)
+
+        # 2️⃣ Vérifier appartenance
+        is_member = GroupMembership.objects.filter(
+            group=group,
+            phone_number=request.user.phone_number,
+            left_at__isnull=True
+        ).exists()
+
+        if not is_member:
+            return Response(
+                {"detail": "Accès refusé"},
+                status=403
+            )
+
+        # 3️⃣ Récupérer toutes les transactions du groupe
+        transactions = Transaction.objects.select_related("operation").filter(
+            operation__group=group
+        )
+
+        # 4️⃣ Statistiques globales
+        total_transactions = transactions.count()
+        
+        stats_by_status = transactions.values("operation__status").annotate(
+            count=Count("id"),
+            total_amount=Sum("amount"),
+            avg_amount=Avg("amount")
+        )
+
+        # 5️⃣ Montants
+        total_amount_completed = transactions.filter(
+            operation__status=OperationStatus.COMPLETED
+        ).aggregate(Sum("amount"))["amount__sum"] or Decimal(0)
+
+        total_amount_pending = transactions.filter(
+            operation__status=OperationStatus.PENDING
+        ).aggregate(Sum("amount"))["amount__sum"] or Decimal(0)
+
+        total_amount_rejected = transactions.filter(
+            operation__status=OperationStatus.REJECTED
+        ).aggregate(Sum("amount"))["amount__sum"] or Decimal(0)
+
+        avg_transaction_amount = transactions.aggregate(Avg("amount"))["amount__avg"] or Decimal(0)
+
+        # 6️⃣ Top destinataires
+        top_recipients = transactions.values("recipient_phone_number").annotate(
+            count=Count("id"),
+            total_amount=Sum("amount")
+        ).order_by("-total_amount")[:5]
+
+        # 7️⃣ Top initiateurs
+        top_initiators = transactions.values("operation__initiator_phone_number").annotate(
+            count=Count("id"),
+            total_amount=Sum("amount")
+        ).order_by("-total_amount")[:5]
+
+        # 8️⃣ Transactions par jour (derniers 30 jours)
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        transactions_last_30_days = transactions.filter(
+            created_at__gte=thirty_days_ago
+        ).values("operation__created_at__date").annotate(
+            count=Count("id"),
+            total_amount=Sum("amount")
+        ).order_by("operation__created_at__date")
+
+        # 9️⃣ Formater les données
+        data = {
+            "summary": {
+                "total_transactions": total_transactions,
+                "total_amount_completed": str(total_amount_completed),
+                "total_amount_pending": str(total_amount_pending),
+                "total_amount_rejected": str(total_amount_rejected),
+                "avg_transaction_amount": str(round(avg_transaction_amount, 2)),
+                "group_name": group.group_name,
+            },
+            "by_status": [
+                {
+                    "status": item["operation__status"],
+                    "count": item["count"],
+                    "total_amount": str(item["total_amount"] or Decimal(0)),
+                    "avg_amount": str(round(item["avg_amount"] or Decimal(0), 2))
+                }
+                for item in stats_by_status
+            ],
+            "top_recipients": [
+                {
+                    "phone_number": item["recipient_phone_number"],
+                    "transaction_count": item["count"],
+                    "total_amount": str(item["total_amount"] or Decimal(0))
+                }
+                for item in top_recipients
+            ],
+            "top_initiators": [
+                {
+                    "phone_number": item["operation__initiator_phone_number"],
+                    "transaction_count": item["count"],
+                    "total_amount": str(item["total_amount"] or Decimal(0))
+                }
+                for item in top_initiators
+            ],
+            "last_30_days": [
+                {
+                    "date": str(item["operation__created_at__date"]),
+                    "count": item["count"],
+                    "total_amount": str(item["total_amount"] or Decimal(0))
+                }
+                for item in transactions_last_30_days
+            ]
+        }
+
+        return Response(data, status=status.HTTP_200_OK)

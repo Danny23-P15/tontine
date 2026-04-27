@@ -20,6 +20,7 @@ function GroupDetailPage() {
   const [showCreateTransaction, setShowCreateTransaction] = useState(false);
   const [statusModal, setStatusModal] = useState({ open: false, message: "", isError: false });
   const [confirmModal, setConfirmModal] = useState({ open: false, type: null, data: null });
+  const [operationBlockedModal, setOperationBlockedModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // États pour le solde
@@ -95,6 +96,10 @@ function GroupDetailPage() {
 
   // --- ACTIONS (AJOUT / SUPPRESSION / RETRAIT) ---
   const handleAddValidator = async () => {
+    if (group.has_pending_operations) {
+      setOperationBlockedModal(true);
+      return;
+    }
     setIsProcessing(true);
     try {
       const user = allUsers.find(u => (u.phone_number || u.phone || u.id?.toString()) === selectedUser);
@@ -121,6 +126,10 @@ function GroupDetailPage() {
   };
 
   const processRemoveValidator = async (phone) => {
+    if (group.has_pending_operations) {
+      setOperationBlockedModal(true);
+      return;
+    }
     setIsProcessing(true);
     try {
       await requestRemoveValidator(group.id, phone);
@@ -135,6 +144,10 @@ function GroupDetailPage() {
   };
 
   const processDeleteGroup = async () => {
+    if (group.has_pending_operations) {
+      setOperationBlockedModal(true);
+      return;
+    }
     setIsProcessing(true);
     try {
       const resp = await requestDeleteGroup(group.id);
@@ -430,6 +443,17 @@ function GroupDetailPage() {
             <div style={{ fontSize: '3rem', marginBottom: '10px' }}>{statusModal.isError ? "❌" : "✅"}</div>
             <p>{statusModal.message}</p>
             <button className="btn-confirm" onClick={() => setStatusModal({ ...statusModal, open: false })}>Ok</button>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL OPÉRATION BLOQUÉE --- */}
+      {operationBlockedModal && (
+        <div className="validator-overlay" onClick={() => setOperationBlockedModal(false)}>
+          <div className="validator-modal" style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🚫</div>
+            <p>Une opération est en cours, vous ne pouvez pas initier d'autre opération de groupe</p>
+            <button className="btn-confirm" onClick={() => setOperationBlockedModal(false)}>D'accord</button>
           </div>
         </div>
       )}

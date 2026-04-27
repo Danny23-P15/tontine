@@ -20,5 +20,6 @@ urlpatterns = [
     path("groups/<int:group_id>/transactions/request/", RequestTransactionAPIView.as_view(), name="request-transaction"),
     path("groups/<int:group_id>/balance/", GroupBalanceAPIView.as_view(), name="group-balance"),
     path("groups/<int:group_id>/transactions/history/",GroupTransactionsAPIView.as_view()),
+    path("groups/<int:group_id>/transactions/stats/", GroupTransactionsStatsAPIView.as_view()),
 
 ]

@@ -177,6 +177,8 @@ export default function TransactionsPage() {
           </div>
         )}
 
+
+
         {/* SECTION DESTINATAIRE */}
         <div className="form-group">
           <label>
