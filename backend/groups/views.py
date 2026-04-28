@@ -632,9 +632,10 @@ class GroupTransactionsStatsAPIView(APIView):
                 status=403
             )
 
-        # 3️⃣ Récupérer toutes les transactions du groupe
+        # 3️⃣ Récupérer uniquement les transactions complétées du groupe
         transactions = Transaction.objects.select_related("operation").filter(
-            operation__group=group
+            operation__group=group,
+            operation__status=OperationStatus.COMPLETED
         )
 
         # 4️⃣ Statistiques globales
@@ -647,17 +648,11 @@ class GroupTransactionsStatsAPIView(APIView):
         )
 
         # 5️⃣ Montants
-        total_amount_completed = transactions.filter(
-            operation__status=OperationStatus.COMPLETED
-        ).aggregate(Sum("amount"))["amount__sum"] or Decimal(0)
+        total_amount_completed = transactions.aggregate(Sum("amount"))["amount__sum"] or Decimal(0)
 
-        total_amount_pending = transactions.filter(
-            operation__status=OperationStatus.PENDING
-        ).aggregate(Sum("amount"))["amount__sum"] or Decimal(0)
+        total_amount_pending = Decimal(0)
 
-        total_amount_rejected = transactions.filter(
-            operation__status=OperationStatus.REJECTED
-        ).aggregate(Sum("amount"))["amount__sum"] or Decimal(0)
+        total_amount_rejected = Decimal(0)
 
         avg_transaction_amount = transactions.aggregate(Avg("amount"))["amount__avg"] or Decimal(0)
 
@@ -673,10 +668,10 @@ class GroupTransactionsStatsAPIView(APIView):
             total_amount=Sum("amount")
         ).order_by("-total_amount")[:5]
 
-        # 8️⃣ Transactions par jour (derniers 30 jours)
+        # 8️⃣ Transactions par jour (derniers 30 jours) - uniquement complétées
         thirty_days_ago = timezone.now() - timedelta(days=30)
         transactions_last_30_days = transactions.filter(
-            created_at__gte=thirty_days_ago
+            operation__created_at__gte=thirty_days_ago
         ).values("operation__created_at__date").annotate(
             count=Count("id"),
             total_amount=Sum("amount")
@@ -728,3 +723,4 @@ class GroupTransactionsStatsAPIView(APIView):
         }
 
         return Response(data, status=status.HTTP_200_OK)
+    
