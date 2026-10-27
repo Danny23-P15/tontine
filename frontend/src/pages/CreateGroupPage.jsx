@@ -167,32 +167,53 @@ function CreateGroupPage() {
     }
   };
 
-  return (
-    <div className="group-page-wrapper">
-      <div className="group-page-container">
-        <h2 className="group-page-title">Création de groupe</h2>
+return (
+  <div className="group-page-wrapper">
+    <div className="group-page-container">
 
+      {/* Header */}
+      <div className="card-header">
+        <div className="card-header-top">
+          <div className="header-icon">
+            <i className="ti ti-users" aria-hidden="true"></i>
+          </div>
+          <h2 className="group-page-title">Création de groupe</h2>
+        </div>
+        <p className="card-subtitle">Configurez les paramètres et les validateurs</p>
+      </div>
+
+      <div className="card-body">
         {loadingRoles || loadingCreations ? (
           <div className="loading-msg">Chargement en cours...</div>
+
         ) : initiatedCreations.length > 0 ? (
           <div className="pending-creation-modal">
             <div className="pending-modal-content">
               <div className="pending-icon">⏳</div>
-              <h3>Création de groupe en cours</h3>
+              <h3>Création en cours</h3>
               <p>Vous avez déjà une demande de création de groupe en attente de validation :</p>
               <div className="pending-group-info">
                 <h4>{initiatedCreations[0].group_name}</h4>
-                <p className="validators-info">{initiatedCreations[0].approved_count}/{initiatedCreations[0].total_validators} validateurs ont accepté</p>
+                <p className="validators-info">
+                  {initiatedCreations[0].approved_count}/{initiatedCreations[0].total_validators} validateurs ont accepté
+                </p>
                 <p className="quorum-info">Quorum requis : {initiatedCreations[0].quorum}</p>
-                <p className="status-info">Statut: <span className={`status-badge status-${initiatedCreations[0].status.toLowerCase()}`}>{initiatedCreations[0].status}</span></p>
+                <p className="status-info">
+                  Statut :{" "}
+                  <span className={`status-badge status-${initiatedCreations[0].status.toLowerCase()}`}>
+                    {initiatedCreations[0].status}
+                  </span>
+                </p>
               </div>
-              <p className="info-text">Veuillez attendre que tous les validateurs répondent avant de créer un nouveau groupe.</p>
+              <p className="info-text">
+                Veuillez attendre que tous les validateurs répondent avant de créer un nouveau groupe.
+              </p>
               <div className="pending-modal-buttons">
                 <button className="modal-btn main-btn" onClick={() => navigate("/initiated-operations")}>
                   Voir le statut détaillé
                 </button>
-                <button 
-                  className="modal-btn cancel-btn" 
+                <button
+                  className="modal-btn cancel-btn"
                   onClick={handleCancelCreation}
                   disabled={cancellingCreation || initiatedCreations[0].status === "APPROVED"}
                 >
@@ -201,6 +222,7 @@ function CreateGroupPage() {
               </div>
             </div>
           </div>
+
         ) : isInitiator ? (
           <div className="initiator-restriction">
             <div className="restriction-icon">⚠️</div>
@@ -210,80 +232,99 @@ function CreateGroupPage() {
               Retour à mes groupes
             </button>
           </div>
+
         ) : (
           <>
             {error && <div className="error-banner">{error}</div>}
             <form onSubmit={handleSubmit} className="group-form">
-              <div className="form-section">
-                <label className="form-label">Nom du groupe *</label>
-                <input
-                  className="form-input"
-                  placeholder="Ex: Project"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  required
-                />
+
+              {/* Nom + Quorum côte à côte */}
+              <div className="form-row">
+                <div className="form-section">
+                  <label className="form-label">Nom du groupe *</label>
+                  <input
+                    className="form-input"
+                    placeholder="Ex : Project Alpha"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-section quorum-section">
+                  <label className="form-label">Quorum *</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="1"
+                    max={Math.max(1, selectedValidators.length - 1) || 1}
+                    value={quorum}
+                    onChange={(e) => setQuorum(parseInt(e.target.value) || 1)}
+                    required
+                  />
+                </div>
               </div>
 
-              <div className="form-section">
-                <label className="form-label">Quorum *</label>
-                <input
-                  className="form-input"
-                  type="number"
-                  min="1"
-                  max={Math.max(1, selectedValidators.length - 1) || 1}
-                  value={quorum}
-                  onChange={(e) => setQuorum(parseInt(e.target.value) || 1)}
-                  required
-                />
-              </div>
-
+              {/* Section validateurs */}
               <div className="validators-section">
-                <h3 className="section-subtitle">
-                  Validateurs <span className="highlight">({selectedValidators.length}/5)</span>
-                </h3>
-                
+                <div className="section-header">
+                  <h3 className="section-subtitle">Validateurs</h3>
+                  <span className="counter-badge">{selectedValidators.length} / 5</span>
+                </div>
+
                 <div className="selected-list">
                   {selectedValidators.length === 0 ? (
                     <p className="empty-msg">Aucun membre sélectionné.</p>
                   ) : (
-                    selectedValidators.map((v) => (
-                      <div key={v.phone_number} className="validator-card">
-                        <div className="validator-info">
-                          <div className="validator-name">{v.full_name}</div>
-                          <div className="validator-details">Tél: {v.phone_number}</div>
+                    selectedValidators.map((v) => {
+                      const initials = v.full_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase();
+                      return (
+                        <div key={v.phone_number} className="validator-card">
+                          <div className="validator-avatar">{initials}</div>
+                          <div className="validator-info">
+                            <div className="validator-name">{v.full_name}</div>
+                            <div className="validator-details">{v.phone_number}</div>
+                          </div>
+                          <button
+                            type="button"
+                            className="remove-btn"
+                            onClick={() => removeValidator(v.phone_number)}
+                            aria-label="Retirer"
+                            title="Retirer"
+                          >
+                            &times;
+                          </button>
                         </div>
-                        <button type="button" className="remove-btn" onClick={() => removeValidator(v.phone_number)} title="Retirer">
-                          &times;
-                        </button>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
+                {/* Recherche */}
                 <div className="add-validator-box">
                   <div className="search-container">
+                    <i className="ti ti-search search-icon" aria-hidden="true"></i>
                     <input
                       type="text"
                       className="form-input search-input"
                       placeholder="Rechercher par nom ou téléphone..."
                       value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setShowDropdown(true);
-                      }}
+                      onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }}
                       onFocus={() => setShowDropdown(true)}
                       disabled={selectedValidators.length >= 5}
                     />
-                    
                     {showDropdown && searchQuery && (
                       <div className="dropdown-list">
                         {filteredUsers.length > 0 ? (
                           filteredUsers.map((user) => (
-                            <button 
-                              key={user.phone_number} 
-                              type="button" 
-                              className="dropdown-item" 
+                            <button
+                              key={user.phone_number}
+                              type="button"
+                              className="dropdown-item"
                               onClick={() => addValidator(user)}
                             >
                               <span className="dropdown-item-name">{user.full_name}</span>
@@ -299,37 +340,49 @@ function CreateGroupPage() {
                 </div>
               </div>
 
-              <button type="submit" className="submit-group-btn" disabled={loading || selectedValidators.length === 0}>
-                {loading ? "Chargement..." : "Confirmer"}
+              <button
+                type="submit"
+                className="submit-group-btn"
+                disabled={loading || selectedValidators.length === 0}
+              >
+                {loading ? "Chargement..." : "Confirmer la création"}
               </button>
             </form>
           </>
         )}
-
-        {showSuccessModal && (
-          <div className="modal-overlay">
-            <div className="modal-content">
-              <div className="modal-icon">✅</div>
-              <h3>Demande envoyée !</h3>
-              <p>Le groupe <strong>{groupName}</strong> est en attente.</p>
-              <button className="modal-btn" onClick={() => navigate("/notifications")}>Continuer</button>
-            </div>
-          </div>
-        )}
       </div>
+    </div>
+
+    {/* Panneau règles */}
     <div className="rules-panel">
       <div className="rules-panel-header">
-        <span className="rules-icon">📋</span>
+        <i className="ti ti-clipboard-list rules-icon" aria-hidden="true"></i>
         <h3>Règles de gestion</h3>
       </div>
       <ul className="rules-list">
-        <li>Règle 1 — à définir</li>
-        <li>Règle 2 — à définir</li>
-        <li>Règle 3 — à définir</li>
+        {["Règle 1 — à définir", "Règle 2 — à définir", "Règle 3 — à définir"].map((rule, i) => (
+          <li key={i}>
+            <span className="rule-num">{i + 1}</span>
+            {rule.replace(/^Règle \d+ — /, "")}
+          </li>
+        ))}
       </ul>
     </div>
-    </div>
-  );
+
+    {/* Modal succès */}
+    {showSuccessModal && (
+      <div className="modal-overlay">
+        <div className="modal-content">
+          <div className="modal-icon">✅</div>
+          <h3>Demande envoyée !</h3>
+          <p>Le groupe <strong>{groupName}</strong> est en attente de validation.</p>
+          <button className="modal-btn" onClick={() => navigate("/notifications")}>Continuer</button>
+        </div>
+      </div>
+    )}
+  </div>
+);
 }
 
 export default CreateGroupPage;
+

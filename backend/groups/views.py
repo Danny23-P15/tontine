@@ -29,6 +29,7 @@ from groups.services import (
     operation_service as os,
     operation_validation as ov,
 )
+from groups.services.group_rules import can_add_validator_to_temp_group
 
 create_group_request = gc.create_group_request
 respond_to_group_creation = gv.respond_to_group_creation
@@ -65,13 +66,18 @@ class CreateGroupRequestAPIView(APIView):
             accepted_count = tg.validators.filter(has_accepted=True).count()
             total_validators = tg.validators.count()
 
-            # Déterminer le statut
-            if tg.expires_at and tg.expires_at < now:
-                status_val = "EXPIRED"
-            elif accepted_count >= tg.quorum:
-                status_val = "APPROVED"
-            else:
-                status_val = "PENDING"
+        # Déterminer le statut de la demande
+        if tg.expires_at and tg.expires_at < now:
+            status_val = "EXPIRED"
+
+        elif tg.validators.filter(has_accepted=False).exists():
+            status_val = "REJECTED"
+
+        elif total_validators > 0 and accepted_count == total_validators:
+            status_val = "APPROVED"
+
+        else:
+            status_val = "PENDING"
 
             results.append({
                 "id": tg.id,
@@ -115,6 +121,7 @@ class CreateGroupRequestAPIView(APIView):
             status=status.HTTP_201_CREATED
         )
 
+# serializer
 class RespondGroupCreationAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -161,6 +168,7 @@ class RespondGroupCreationAPIView(APIView):
         status_code = 200 if success else 400
         return Response({"message": message}, status=status_code)
 
+
 class MyGroupsAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -182,7 +190,7 @@ class GroupDetailAPIView(APIView):
         data = get_group_detail(request.user, group_id)
         return Response(data, status=status.HTTP_200_OK)
     
-class AddValidatorAPIView(APIView):
+class RequestAddValidatorAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, group_id):
@@ -232,6 +240,7 @@ class AddValidatorAPIView(APIView):
             status=status.HTTP_200_OK
         )
     print("SERIALIZER CLASS:", AddValidatorSerializer)
+
 
 class RemoveValidatorAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -723,4 +732,55 @@ class GroupTransactionsStatsAPIView(APIView):
         }
 
         return Response(data, status=status.HTTP_200_OK)
-    
+
+
+class CanCreateGroupAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        can_create, reason = gc.can_create_group(request.user.phone_number)
+        return Response({
+            "can_create": can_create,
+            "reason": reason
+        }, status=status.HTTP_200_OK)
+
+
+class ValidatorSuggestionsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        phone = request.query_params.get("phone", "").strip()
+
+        if len(phone) < 3:
+            return Response({"results": []})
+
+        users = (
+            User.objects
+            .filter(phone_number__startswith=phone)
+            .exclude(pk=request.user.pk)
+            .order_by("phone_number")
+        )
+
+        results = []
+
+        for user in users:
+            allowed, reason = can_add_validator_to_temp_group(
+                request.user.phone_number,  # Initiateur connecté
+                user.phone_number,          # Validateur recherché
+                user.cin,
+                []
+            )
+
+            if not allowed:
+                continue
+
+            results.append({
+                "id": user.pk,
+                "full_name": user.full_name,
+                "phone_number": user.phone_number,
+            })
+
+            if len(results) >= 10:
+                break
+
+        return Response({"results": results})

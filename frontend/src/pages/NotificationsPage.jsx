@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { getPendingNotifications } from "../services/notifications";
 import NotificationCard from "../components/NotificationCard";
+import RejectModal from "../components/RejectModal";
 import { RefreshCcw, BellOff, CheckCircle, XCircle, Filter } from "lucide-react";
 import "../css/notification.css";
 
@@ -10,6 +11,7 @@ export default function NotificationsPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [filter, setFilter] = useState("all"); // 'all', 'invitation', 'system'
   const [statusModal, setStatusModal] = useState({ open: false, message: "", isError: false });
+  const [notificationToReject, setNotificationToReject] = useState(null);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -27,8 +29,13 @@ export default function NotificationsPage() {
     loadNotifications();
   }, [loadNotifications]);
 
-  const handleRespond = async (notification, accept) => {
-    if (isProcessing) return;
+  const handleRespond = async (notification, accept, rejectionReason) => {
+    if (!accept && notification.event === "group_creation_request" && rejectionReason === undefined) {
+      setNotificationToReject(notification);
+      return false;
+    }
+
+    if (isProcessing) return false;
     setIsProcessing(true);
 
     try {
@@ -39,7 +46,11 @@ export default function NotificationsPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("access")}`,
         },
-        body: JSON.stringify({ ...payload, accept: accept }),
+        body: JSON.stringify({
+          ...payload,
+          accept,
+          ...(rejectionReason !== undefined && { rejection_reason: rejectionReason }),
+        }),
       });
 
       if (!response.ok) throw new Error("Le serveur a refusé la requête.");
@@ -48,14 +59,22 @@ export default function NotificationsPage() {
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
       setStatusModal({ 
         open: true, 
-        message: accept ? "Invitation acceptée !" : "Notification ignorée", 
+        message: accept ? "Invitation acceptée !" : rejectionReason ? "Demande refusée." : "Notification ignorée",
         isError: false 
       });
+      return true;
     } catch (e) {
       setStatusModal({ open: true, message: "Action échouée. Vérifiez votre connexion.", isError: true });
+      return false;
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleRejectConfirm = async (rejectionReason) => {
+    const success = await handleRespond(notificationToReject, false, rejectionReason);
+    if (success) setNotificationToReject(null);
+    return success;
   };
 
   const filteredNotifs = notifications.filter(n => {
@@ -115,6 +134,12 @@ export default function NotificationsPage() {
           </div>
         )}
       </div>
+
+      <RejectModal
+        open={Boolean(notificationToReject)}
+        onClose={() => setNotificationToReject(null)}
+        onConfirm={handleRejectConfirm}
+      />
 
       {/* Modal de Feedback */}
       {statusModal.open && (

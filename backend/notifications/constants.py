@@ -5,6 +5,7 @@ class OperationEvent(str, Enum):
 
     GROUP_CREATED = "group_created"
     GROUP_CREATION_REJECTED = "group_creation_rejected"
+    GROUP_CREATION_VALIDATION_RECORDED = "group_creation_validation_recorded"
 
     GROUP_DELETED = "group_deleted"
     GROUP_DELETION_REJECTED = "group_deletion_rejected"
@@ -13,6 +14,7 @@ class OperationEvent(str, Enum):
     VALIDATOR_ADDED = "validator_added"
     ADD_VALIDATOR_REJECTED = "add_validator_rejected"
 
+    OPERATION_VALIDATION_RECORDED = "operation_validation_recorded"
     VALIDATOR_REMOVED = "validator_removed"
     REMOVE_VALIDATOR_REQUESTED = "remove_validator_requested"
     REMOVE_VALIDATOR_REJECTED = "remove_validator_rejected"

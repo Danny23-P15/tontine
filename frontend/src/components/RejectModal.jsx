@@ -5,10 +5,17 @@ export default function RejectModal({ open, onClose, onConfirm }) {
 
   if (!open) return null;
 
-  const handleSubmit = () => {
-    if (!reason.trim()) return;
-    onConfirm(reason);
+  const handleSubmit = async () => {
+    const trimmedReason = reason.trim();
+    if (!trimmedReason) return;
+
+    const confirmed = await onConfirm(trimmedReason);
+    if (confirmed !== false) setReason("");
+  };
+
+  const handleClose = () => {
     setReason("");
+    onClose();
   };
 
   return (
@@ -25,7 +32,7 @@ export default function RejectModal({ open, onClose, onConfirm }) {
         />
 
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button onClick={onClose}>Annuler</button>
+          <button onClick={handleClose}>Annuler</button>
           <button onClick={handleSubmit} style={{ background: "#F44336", color: "white" }}>
             Refuser
           </button>

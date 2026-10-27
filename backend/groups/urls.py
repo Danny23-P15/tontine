@@ -10,7 +10,7 @@ urlpatterns = [
     path("groups/my-groups/", MyGroupsAPIView.as_view()),
     path("groups/my-initiator-groups/", MyInitiatorGroupsAPIView.as_view()),
     path("groups/<int:group_id>/", GroupDetailAPIView.as_view()), 
-    path("groups/<int:group_id>/validator/add/", AddValidatorAPIView.as_view()),
+    path("groups/<int:group_id>/validator/add/", RequestAddValidatorAPIView.as_view()),
     # path("operations/add-validator/respond/", RespondAddValidatorAPIView.as_view()),
     path("operations/respond/", RespondOperationAPIView.as_view()),
     path("groups/<int:group_id>/remove-validator/",RemoveValidatorAPIView.as_view(),name="remove-validator"),
@@ -21,5 +21,7 @@ urlpatterns = [
     path("groups/<int:group_id>/balance/", GroupBalanceAPIView.as_view(), name="group-balance"),
     path("groups/<int:group_id>/transactions/history/",GroupTransactionsAPIView.as_view()),
     path("groups/<int:group_id>/transactions/stats/", GroupTransactionsStatsAPIView.as_view()),
-
+    # path("groups/<int:group_id>/transactions/<int:transaction_id>/", TransactionDetailAPIView.as_view()),
+    path("groups/can-create/", CanCreateGroupAPIView.as_view(), name="can-create-group"),
+    path("groups/validator-suggestions/", ValidatorSuggestionsAPIView.as_view(), name="validator-suggestions"),
 ]

@@ -18,7 +18,7 @@ OPERATION_NOTIFICATION_MAP = {
         "actionable": True,
     },
 
-    OperationEvent.VALIDATION_RECORDED: {
+    OperationEvent.GROUP_CREATION_VALIDATION_RECORDED: {
         "source_type": NotificationSourceType.TEMP_GROUP_CREATION,
         "recipients": ["initiator"],
         "title": "Validation enregistrée",
@@ -138,7 +138,7 @@ OPERATION_NOTIFICATION_MAP = {
         "actionable": True,
     },
 
-    OperationEvent.VALIDATION_RECORDED: {
+    OperationEvent.OPERATION_VALIDATION_RECORDED: {
         "source_type": NotificationSourceType.OPERATION,
         "recipients": ["initiator"],
         "title": "Validation enregistrée",

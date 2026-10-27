@@ -95,7 +95,54 @@
   overflow: hidden;
   color: #fff;
   font-size: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
 
+.notification-card:hover {
+  border-color: #333;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-content h4 {
+  margin: 0 0 8px 0;
+  color: #fff;
+}
+
+.notification-content p {
+  margin: 0 0 8px 0;
+  color: #aaa;
+}
+
+.notification-content small {
+  color: #666;
+}
+
+.notification-delete-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.notification-delete-btn:hover:not(:disabled) {
+  color: #ff4d4d;
+  background: rgba(255, 77, 77, 0.1);
+}
+
+.notification-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .notification-card:hover {

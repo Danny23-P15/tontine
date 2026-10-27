@@ -4,7 +4,6 @@ from django.utils import timezone
 from groups.models import Operation, OperationType, OperationStatus, Account
 from decimal import Decimal
 
-
 def get_user_group_stats(phone_number: str) -> dict:
     memberships = GroupMembership.objects.filter(
         phone_number=phone_number,
@@ -77,6 +76,11 @@ def can_add_validator_to_temp_group(
     temp_validators: list[dict]
 ) -> tuple[bool, str | None]:
 
+    stats = get_user_group_stats(validator_phone)
+
+    if stats["total_groups"] >= 3:
+        return False, "Ce numéro appartient déjà à 3 groupes"
+
     if initiator_phone == validator_phone:
         return False, "Vous ne pouvez pas vous ajouter vous-même"
 
@@ -86,11 +90,6 @@ def can_add_validator_to_temp_group(
     # Ne pas dépasser 5 validateurs lors de la création temporaire
     if len(temp_validators) >= 5:
         return False, "Un groupe ne peut pas dépasser 5 validateurs"
-
-    stats = get_user_group_stats(validator_phone)
-
-    if stats["total_groups"] >= 3:
-        return False, "Ce numéro appartient déjà à 3 groupes"
 
     return True, None
 

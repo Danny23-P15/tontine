@@ -25,3 +25,13 @@ export const respondToGroupCreation = async (payload) => {
     throw error;
   }
 };
+
+export const deleteNotification = async (notificationId) => {
+  try {
+    const response = await api.delete(`/notifications/${notificationId}/`);
+    return response.data;
+  } catch (error) {
+    console.error("Erreur suppression notification:", error);
+    throw error;
+  }
+};

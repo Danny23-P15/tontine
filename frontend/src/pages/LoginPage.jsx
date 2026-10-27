@@ -87,7 +87,7 @@ export default function LoginPage() {
         </form>
 
         <div className="login-footer">
-          <span>Pas encore de compte ?</span>
+          <span>Vous n'avez pas de compte ?</span>
           <Link to="/register" className="register-link">S'inscrire</Link>
         </div>
       </div>
