@@ -34,3 +34,16 @@ export const requestAddValidator = async (
   return response.data;
 };
 
+export const requestRemoveValidator = async (
+  group_id: number,
+  validator_id: number
+) => {
+  const response = await api.post(
+    `groups/${group_id}/remove-validator/`,
+    {
+      validator_phone_number: validator_id,
+    }
+  );
+
+  return response.data;
+};

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,9 +13,7 @@ import {
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 
 import { getGroupDetail } from '../../services/groupDetailService';
-import { requestAddValidator } from '../../services/groupService';
-
-
+import { requestAddValidator, requestRemoveValidator } from '../../services/groupService';
 
 type Member = {
   full_name: string;
@@ -48,48 +45,50 @@ export default function GroupDetailScreen() {
   const [error, setError] = useState('');
   const [validatorPhone, setValidatorPhone] = useState('');
   const [addingValidator, setAddingValidator] = useState(false);
+  // CORRECTION : ce hook était déclaré en dehors du composant
+  const [removingPhone, setRemovingPhone] = useState<string | null>(null);
 
   const handleAddValidator = async () => {
-  const phone = validatorPhone.trim();
+    const phone = validatorPhone.trim();
 
-  if (!phone) {
-    Alert.alert('Champ obligatoire', 'Saisis le numéro du validateur.');
-    return;
-  }
+    if (!phone) {
+      Alert.alert('Champ obligatoire', 'Saisis le numéro du validateur.');
+      return;
+    }
 
-  if (!id || !group) {
-    Alert.alert('Erreur', 'Le groupe est introuvable.');
-    return;
-  }
+    if (!id || !group) {
+      Alert.alert('Erreur', 'Le groupe est introuvable.');
+      return;
+    }
 
-  try {
-    setAddingValidator(true);
+    try {
+      setAddingValidator(true);
 
-    const result = await requestAddValidator(Number(id), phone);
+      const result = await requestAddValidator(Number(id), phone);
 
-    Alert.alert(
-      'Demande envoyée',
-      result.detail ?? 'La demande d’ajout a été envoyée.'
-    );
+      Alert.alert(
+        'Demande envoyée',
+        result.detail ?? 'La demande d’ajout a été envoyée.'
+      );
 
-    setValidatorPhone('');
-  } catch (err: any) {
-    console.error(
-      'Erreur lors de la demande d’ajout :',
-      err.response?.data ?? err.message
-    );
+      setValidatorPhone('');
+    } catch (err: any) {
+      console.error(
+        'Erreur lors de la demande d’ajout :',
+        err.response?.data ?? err.message
+      );
 
-    const data = err.response?.data;
-    const message =
-      data?.detail ??
-      data?.validator_phone_number?.[0] ??
-      'Impossible d’envoyer la demande.';
+      const data = err.response?.data;
+      const message =
+        data?.detail ??
+        data?.validator_phone_number?.[0] ??
+        'Impossible d’envoyer la demande.';
 
-    Alert.alert('Erreur', message);
-  } finally {
-    setAddingValidator(false);
-  }
-};
+      Alert.alert('Erreur', message);
+    } finally {
+      setAddingValidator(false);
+    }
+  };
 
   useEffect(() => {
     const loadGroup = async () => {
@@ -116,6 +115,50 @@ export default function GroupDetailScreen() {
       setLoading(false);
     }
   }, [id]);
+
+  const handleRemoveValidator = (member: Member) => {
+    Alert.alert(
+      'Demander la suppression',
+      `Veux-tu demander la suppression de ${member.full_name} (${member.phone_number}) du groupe ?`,
+      [
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: 'Envoyer la demande',
+          onPress: async () => {
+            try {
+              setRemovingPhone(member.phone_number);
+
+              const result = await requestRemoveValidator(
+                Number(id),
+                member.phone_number
+              );
+
+              Alert.alert(
+                'Demande envoyée',
+                result.detail ?? 'La demande de suppression a été envoyée.'
+              );
+            } catch (err: any) {
+              console.error(
+                'Erreur de demande de suppression :',
+                err.response?.data ?? err.message
+              );
+
+              Alert.alert(
+                'Erreur',
+                err.response?.data?.detail ??
+                  'Impossible d’envoyer la demande de suppression.'
+              );
+            } finally {
+              setRemovingPhone(null);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const formatDate = (date: string) => {
     if (!date) return 'Non disponible';
@@ -147,10 +190,7 @@ export default function GroupDetailScreen() {
           {error || 'Groupe introuvable.'}
         </Text>
 
-        <Pressable
-          style={styles.button}
-          onPress={() => router.back()}
-        >
+        <Pressable style={styles.button} onPress={() => router.back()}>
           <Text style={styles.buttonText}>Retour</Text>
         </Pressable>
       </View>
@@ -162,10 +202,7 @@ export default function GroupDetailScreen() {
       <Stack.Screen options={{ title: 'Détail du groupe' }} />
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backText}>‹ Retour aux groupes</Text>
         </Pressable>
 
@@ -196,10 +233,7 @@ export default function GroupDetailScreen() {
         <Text style={styles.sectionTitle}>Informations du groupe</Text>
 
         <View style={styles.infoCard}>
-          <InfoRow
-            label="Identifiant"
-            value={String(group.id)}
-          />
+          <InfoRow label="Identifiant" value={String(group.id)} />
           <InfoRow
             label="Mon rôle"
             value={group.me.role === 'INITIATOR' ? 'Initiateur' : 'Validateur'}
@@ -208,10 +242,7 @@ export default function GroupDetailScreen() {
             label="Nombre de membres"
             value={String(group.members.length)}
           />
-          <InfoRow
-            label="Quorum requis"
-            value={String(group.quorum)}
-          />
+          <InfoRow label="Quorum requis" value={String(group.quorum)} />
         </View>
 
         <Text style={styles.sectionTitle}>
@@ -219,9 +250,7 @@ export default function GroupDetailScreen() {
         </Text>
 
         {group.members.length === 0 ? (
-          <Text style={styles.helper}>
-            Aucun membre dans ce groupe.
-          </Text>
+          <Text style={styles.helper}>Aucun membre dans ce groupe.</Text>
         ) : (
           <FlatList
             data={group.members}
@@ -236,9 +265,7 @@ export default function GroupDetailScreen() {
                 </View>
 
                 <View style={styles.memberInfo}>
-                  <Text style={styles.memberName}>
-                    {item.full_name}
-                  </Text>
+                  <Text style={styles.memberName}>{item.full_name}</Text>
                   <Text style={styles.memberDetail}>
                     Téléphone : {item.phone_number}
                   </Text>
@@ -251,6 +278,29 @@ export default function GroupDetailScreen() {
                   <Text style={styles.memberDetail}>
                     Membre depuis le {formatDate(item.joined_at)}
                   </Text>
+
+                  {/* Bouton déplacé dans memberInfo pour ne pas être
+                      écrasé à côté de l'avatar (flexDirection: 'row') */}
+                  {group.me.role === 'INITIATOR' &&
+                    item.role !== 'INITIATOR' && (
+                      <Pressable
+                        style={[
+                          styles.removeButton,
+                          removingPhone === item.phone_number &&
+                            styles.disabledButton,
+                        ]}
+                        disabled={removingPhone === item.phone_number}
+                        onPress={() => handleRemoveValidator(item)}
+                      >
+                        {removingPhone === item.phone_number ? (
+                          <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                          <Text style={styles.removeButtonText}>
+                            Demander la suppression
+                          </Text>
+                        )}
+                      </Pressable>
+                    )}
                 </View>
               </View>
             )}
@@ -258,45 +308,38 @@ export default function GroupDetailScreen() {
         )}
 
         {group.me.role === 'INITIATOR' && (
-  <>
-    <Text style={styles.sectionTitle}>
-      Ajouter un validateur
-    </Text>
+          <>
+            <Text style={styles.sectionTitle}>Ajouter un validateur</Text>
 
-    <View style={styles.infoCard}>
-      <Text style={styles.formDescription}>
-        Saisis le numéro de téléphone de la personne à ajouter.
-      </Text>
+            <View style={styles.infoCard}>
+              <Text style={styles.formDescription}>
+                Saisis le numéro de téléphone de la personne à ajouter.
+              </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Numéro de téléphone"
-        value={validatorPhone}
-        onChangeText={setValidatorPhone}
-        keyboardType="phone-pad"
-        autoCapitalize="none"
-        editable={!addingValidator}
-      />
+              <TextInput
+                style={styles.input}
+                placeholder="Numéro de téléphone"
+                value={validatorPhone}
+                onChangeText={setValidatorPhone}
+                keyboardType="phone-pad"
+                autoCapitalize="none"
+                editable={!addingValidator}
+              />
 
-      <Pressable
-        style={[
-          styles.button,
-          addingValidator && styles.disabledButton,
-        ]}
-        onPress={handleAddValidator}
-        disabled={addingValidator}
-      >
-        {addingValidator ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.buttonText}>
-            Demander l'ajout
-          </Text>
+              <Pressable
+                style={[styles.button, addingValidator && styles.disabledButton]}
+                onPress={handleAddValidator}
+                disabled={addingValidator}
+              >
+                {addingValidator ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.buttonText}>Demander l'ajout</Text>
+                )}
+              </Pressable>
+            </View>
+          </>
         )}
-      </Pressable>
-    </View>
-  </>
-)}
 
         <Text style={styles.sectionTitle}>État des opérations</Text>
 
@@ -462,42 +505,44 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
+  // CORRECTION : `button` et `buttonText` étaient définis deux fois
   button: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    backgroundColor: '#2563EB',
+    padding: 14,
     borderRadius: 8,
+    alignItems: 'center',
   },
   buttonText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   formDescription: {
-  color: '#64748B',
-  fontSize: 14,
-  marginBottom: 12,
-},
-input: {
-  backgroundColor: '#FFFFFF',
-  borderWidth: 1,
-  borderColor: '#CBD5E1',
-  borderRadius: 8,
-  paddingHorizontal: 12,
-  paddingVertical: 12,
-  marginBottom: 12,
-  color: '#172033',
-},
-button: {
-  backgroundColor: '#2563EB',
-  padding: 14,
-  borderRadius: 8,
-  alignItems: 'center',
-},
-buttonText: {
-  color: '#FFFFFF',
-  fontWeight: '700',
-},
-disabledButton: {
-  opacity: 0.6,
-},
+    color: '#64748B',
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginBottom: 12,
+    color: '#172033',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  removeButton: {
+    backgroundColor: '#DC2626',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  removeButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
 });

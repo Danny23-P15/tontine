@@ -19,6 +19,7 @@ import {
 } from '../services/notificationService';
 import { Alert } from 'react-native';
 import { respondToGroupCreation } from '../services/groupService';
+import { respondToOperation } from '@/services/operationService';
 
 export default function NotificationsScreen() {
   const [notifications, setNotifications] =
@@ -45,47 +46,67 @@ export default function NotificationsScreen() {
     }
   };
 
+
   const handleRespond = async (
     item: PendingNotification,
     accept: boolean,
     reason?: string,
   ) => {
-    if (item.type !== 'GROUP_CREATION_REQUEST') {
-      Alert.alert(
-        'Type de demande',
-        'Cette opération doit encore être reliée à son endpoint.',
-      );
-      return;
-    }
-
-    const tempGroupId = item.action?.payload?.temp_group_id;
-
-    if (typeof tempGroupId !== 'number') {
-      Alert.alert(
-        'Erreur',
-        'Impossible de retrouver l’identifiant de la demande.',
-      );
-      return;
-    }
-
-    if (!accept && !reason) {
+    // En cas de refus, demander d'abord le motif.
+    if (!accept && !reason?.trim()) {
       setNotificationToReject(item);
       setRejectionReason('');
       return;
     }
 
+    // Identifier la demande selon son type.
+    const isGroupCreation =
+      item.type === 'GROUP_CREATION_REQUEST';
+
+    const tempGroupId = item.action?.payload?.temp_group_id;
+    const operationId = item.action?.payload?.operation_id;
+
+    if (isGroupCreation && typeof tempGroupId !== 'number') {
+      Alert.alert('Erreur', 'Identifiant de création de groupe introuvable.');
+      return;
+    }
+
+    if (!isGroupCreation && typeof operationId !== 'number') {
+      Alert.alert(
+        'Erreur',
+        'Identifiant de l’opération introuvable dans la notification.',
+      );
+      return;
+    }
+
     if (processingId !== null) return;
+
     setProcessingId(item.id);
 
     try {
-      const result = await respondToGroupCreation(
-        tempGroupId,
-        accept,
-        reason?.trim(),
-      );
+      let result;
+
+      if (isGroupCreation) {
+        // Réponse à une demande de création de groupe.
+        result = await respondToGroupCreation(
+          tempGroupId,
+          accept,
+          reason?.trim(),
+        );
+      } else {
+        // Réponse à une opération en cours :
+        // ajout, suppression de validateur, suppression de groupe,
+        // ou transaction.
+        result = await respondToOperation(
+          operationId as number,
+          accept,
+          reason?.trim(),
+        );
+      }
 
       setNotificationToReject(null);
       setRejectionReason('');
+
       Alert.alert(
         accept ? 'Réponse envoyée' : 'Demande refusée',
         result?.message ??
@@ -113,6 +134,7 @@ export default function NotificationsScreen() {
     }
   };
 
+  
   useFocusEffect(
     useCallback(() => {
       loadNotifications();
@@ -283,6 +305,8 @@ export default function NotificationsScreen() {
   );
 }
 
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -413,3 +437,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
