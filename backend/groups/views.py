@@ -374,6 +374,7 @@ class RequestDeleteGroupAPIView(APIView):
             status=200 if success else 400
         )
 
+
 class MyInitiatedOperationsAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -442,6 +443,7 @@ class MyInitiatedOperationsAPIView(APIView):
 
         return Response(data)
     
+
 class CancelGroupCreationAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -510,6 +512,7 @@ class CancelOperationAPIView(APIView):
 
         return Response({"detail": message})
     
+
 class RequestTransactionAPIView(APIView):
     permission_classes = [IsAuthenticated]
 

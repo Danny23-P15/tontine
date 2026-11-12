@@ -1,4 +1,7 @@
-
+import { Ionicons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
+import { BlurView } from 'expo-blur';
+import { router, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,7 +15,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
 
 import { createGroupRequest } from '../services/groupCreationService';
 import {
@@ -20,75 +22,44 @@ import {
   type ValidatorSuggestion,
 } from '../services/validatorService';
 
+const LIME = '#c6f45a';
+const DARK = '#111827';
+const MAX_VALIDATORS = 5;
 
+type AddedValidator = { phone_number: string; label: string };
 
 export default function CreerGroupeScreen() {
   const [groupName, setGroupName] = useState('');
-  const [quorum, setQuorum] = useState('1');
-  const [validators, setValidators] = useState(['']);
-  const [loading, setLoading] = useState(false);
-  const [activeValidatorIndex, setActiveValidatorIndex] =
-    useState<number | null>(null);
+  const [nameFocused, setNameFocused] = useState(false);
+  const [quorum, setQuorum] = useState(1);
+  const [validators, setValidators] = useState<AddedValidator[]>([]);
+  const [validatorInput, setValidatorInput] = useState('');
   const [suggestions, setSuggestions] = useState<ValidatorSuggestion[]>([]);
-  const [searchingValidators, setSearchingValidators] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const addValidator = () => {
-    if (validators.length >= 5) {
-      Alert.alert('Limite atteinte', 'Tu peux ajouter au maximum 5 validateurs.');
-      return;
-    }
-
-    setValidators((currentValidators) => [...currentValidators, '']);
-  };
-
-  const removeValidator = (index: number) => {
-    if (validators.length === 1) {
-      Alert.alert('Information', 'Au moins un validateur est requis.');
-      return;
-    }
-
-    setValidators((currentValidators) =>
-      currentValidators.filter((_, i) => i !== index)
-    );
-  };
-
-  const updateValidator = (index: number, phone: string) => {
-    setValidators((currentValidators) =>
-      currentValidators.map((value, i) => (i === index ? phone : value))
-    );
-  };
-
+  // Le quorum ne peut pas dépasser le nombre de validateurs
   useEffect(() => {
-    if (activeValidatorIndex === null || loading) {
-      setSuggestions([]);
-      setSearchingValidators(false);
-      return;
-    }
+    setQuorum((q) => Math.min(q, Math.max(1, validators.length)));
+  }, [validators.length]);
 
-    const phone = validators[activeValidatorIndex]?.trim() ?? '';
-
-    if (phone.length < 3) {
+  // Recherche de validateurs (debounce 300 ms)
+  useEffect(() => {
+    const query = validatorInput.trim();
+    if (query.length < 3 || loading) {
       setSuggestions([]);
-      setSearchingValidators(false);
+      setSearching(false);
       return;
     }
 
     let cancelled = false;
-
     const timeout = setTimeout(async () => {
-      setSearchingValidators(true);
-
+      setSearching(true);
       try {
-        const results = await searchValidators(phone);
-
+        const results = await searchValidators(query);
         if (!cancelled) {
-          const otherPhones = validators
-            .filter((_, index) => index !== activeValidatorIndex)
-            .map((value) => value.trim());
-
-          setSuggestions(
-            results.filter((user) => !otherPhones.includes(user.phone_number))
-          );
+          const taken = validators.map((v) => v.phone_number);
+          setSuggestions(results.filter((u) => !taken.includes(u.phone_number)));
         }
       } catch (error) {
         if (!cancelled) {
@@ -96,9 +67,7 @@ export default function CreerGroupeScreen() {
           setSuggestions([]);
         }
       } finally {
-        if (!cancelled) {
-          setSearchingValidators(false);
-        }
+        if (!cancelled) setSearching(false);
       }
     }, 300);
 
@@ -106,384 +75,395 @@ export default function CreerGroupeScreen() {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [activeValidatorIndex, validators, loading]);
+  }, [validatorInput, validators, loading]);
 
-  const selectValidator = (user: ValidatorSuggestion) => {
-    if (activeValidatorIndex === null) {
+  const close = () => router.back();
+
+  const addValidator = (phone: string, label?: string) => {
+    const cleaned = phone.trim();
+    if (!cleaned) return;
+
+    if (validators.length >= MAX_VALIDATORS) {
+      Alert.alert('Limite atteinte', 'Tu peux ajouter au maximum 5 validateurs.');
+      return;
+    }
+    if (validators.some((v) => v.phone_number === cleaned)) {
+      Alert.alert('Déjà ajouté', 'Cette personne figure déjà dans la liste.');
       return;
     }
 
-    if (
-      validators.some(
-        (phone, index) =>
-          index !== activeValidatorIndex && phone.trim() === user.phone_number
-      )
-    ) {
-      Alert.alert(
-        'Validateur déjà sélectionné',
-        'Cette personne figure déjà dans la liste.'
-      );
-      return;
-    }
-
-    updateValidator(activeValidatorIndex, user.phone_number);
+    setValidators((current) => [
+      ...current,
+      { phone_number: cleaned, label: label || cleaned },
+    ]);
+    setValidatorInput('');
     setSuggestions([]);
-    setActiveValidatorIndex(null);
   };
+
+  const removeValidator = (phone: string) => {
+    setValidators((current) => current.filter((v) => v.phone_number !== phone));
+  };
+
+  const canSubmit = groupName.trim().length > 0 && validators.length > 0 && !loading;
 
   const handleSubmit = async () => {
     const trimmedName = groupName.trim();
-    const quorumNumber = Number(quorum);
-    const cleanedPhones = validators.map((phone) => phone.trim());
 
     if (!trimmedName) {
       Alert.alert('Champ obligatoire', 'Entre le nom du groupe.');
       return;
     }
-
     if (trimmedName.length > 100) {
       Alert.alert('Nom trop long', 'Le nom du groupe ne doit pas dépasser 100 caractères.');
       return;
     }
-
-    if (!quorum.trim() || !Number.isInteger(quorumNumber) || quorumNumber < 1) {
-      Alert.alert('Quorum invalide', 'Le quorum doit être un entier supérieur ou égal à 1.');
+    if (validators.length === 0) {
+      Alert.alert('Validateurs manquants', 'Ajoute au moins un validateur.');
       return;
     }
-
-    if (cleanedPhones.some((phone) => !phone)) {
-      Alert.alert('Numéro manquant', 'Remplis le numéro de chaque validateur.');
-      return;
-    }
-
-    if (new Set(cleanedPhones).size !== cleanedPhones.length) {
-      Alert.alert('Doublon détecté', 'Chaque validateur doit avoir un numéro différent.');
-      return;
-    }
-
-    if (quorumNumber > cleanedPhones.length) {
-      Alert.alert(
-        'Quorum invalide',
-        'Le quorum ne peut pas dépasser le nombre de validateurs saisis.'
-      );
+    if (quorum > validators.length) {
+      Alert.alert('Quorum invalide', 'Le quorum ne peut pas dépasser le nombre de validateurs.');
       return;
     }
 
     setLoading(true);
-
     try {
       const result = await createGroupRequest({
         group_name: trimmedName,
-        quorum: quorumNumber,
-        validators: cleanedPhones.map((phone_number) => ({ phone_number })),
+        quorum,
+        validators: validators.map(({ phone_number }) => ({ phone_number })),
       });
 
       Alert.alert(
         'Demande envoyée',
         `Ta demande de création a été enregistrée.\nRéférence : ${result.temp_group_id}`,
-        [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]
+        [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error: any) {
       console.error('Erreur de création du groupe :', error);
-
       const data = error?.response?.data;
       const message =
         data?.message ||
         (typeof data === 'string' ? data : null) ||
         'Impossible d’envoyer la demande. Vérifie les informations et réessaie.';
-
       Alert.alert('Création impossible', message);
     } finally {
       setLoading(false);
     }
   };
 
+  const maxQuorum = Math.max(1, validators.length);
+
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <Stack.Screen options={{ title: 'Créer un groupe' }} />
+    <View style={styles.root}>
+      <Stack.Screen
+        options={{
+          presentation: 'transparentModal',
+          animation: 'slide_from_bottom',
+          contentStyle: { backgroundColor: 'transparent' },
+        }}
+      />
 
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
+      {/* Arrière-plan flouté : toucher pour fermer */}
+      <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={close} />
+      </BlurView>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.sheetWrapper}
+        pointerEvents="box-none"
       >
-        <Text style={styles.title}>Créer un groupe de validation</Text>
-        <Text style={styles.subtitle}>
-          Renseigne les informations et choisis les personnes qui devront
-          valider la création du groupe.
-        </Text>
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
 
-        <Text style={styles.label}>Nom du groupe</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex. Groupe familial"
-          value={groupName}
-          onChangeText={setGroupName}
-          maxLength={100}
-          editable={!loading}
-        />
-
-        <Text style={styles.label}>Quorum requis</Text>
-        <Text style={styles.hint}>
-          Nombre de validateurs qui doivent accepter la demande.
-        </Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex. 2"
-          value={quorum}
-          onChangeText={setQuorum}
-          keyboardType="number-pad"
-          editable={!loading}
-        />
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.label}>Validateurs</Text>
-          <Text style={styles.counter}>{validators.length}/5</Text>
-        </View>
-
-        {validators.map((phone, index) => (
-          <View key={index} style={styles.validatorInputContainer}>
-  <Text style={styles.validatorLabel}>
-    Validateur {index + 1}
-  </Text>
-
-  <TextInput
-    style={styles.input}
-    placeholder="Saisis un numéro de téléphone"
-    value={phone}
-    onChangeText={(value) => {
-      updateValidator(index, value);
-      setActiveValidatorIndex(index);
-      setSuggestions([]);
-    }}
-    onFocus={() => setActiveValidatorIndex(index)}
-    onBlur={() => {
-      // On ne ferme pas immédiatement la liste :
-      // l'utilisateur doit pouvoir toucher une suggestion.
-    }}
-    keyboardType="phone-pad"
-    editable={!loading}
-  />
-
-  {activeValidatorIndex === index && phone.trim().length >= 3 && (
-    <View style={styles.suggestionsContainer}>
-      {searchingValidators ? (
-        <View style={styles.suggestionMessage}>
-          <ActivityIndicator size="small" color="#2563eb" />
-          <Text style={styles.suggestionMessageText}>
-            Recherche des utilisateurs...
-          </Text>
-        </View>
-      ) : suggestions.length > 0 ? (
-        suggestions.map((user) => (
-          <Pressable
-            key={user.id}
-            style={styles.suggestionItem}
-            onPress={() => selectValidator(user)}
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.suggestionName}>
-              {user.full_name}
+            {/* En-tête */}
+            <View style={styles.headerRow}>
+              <View style={styles.headerText}>
+                <Text style={styles.eyebrow}>NOUVEAU DÉPART</Text>
+                <Text style={styles.title}>Créer un groupe</Text>
+              </View>
+              <Pressable
+                style={styles.closeButton}
+                onPress={close}
+                accessibilityRole="button"
+                accessibilityLabel="Fermer"
+              >
+                <Ionicons name="close" size={20} color={DARK} />
+              </Pressable>
+            </View>
+
+            <Text style={styles.subtitle}>
+              Configurez le groupe et choisissez les personnes qui valideront
+              les demandes.
             </Text>
 
-            <Text style={styles.suggestionPhone}>
-              {user.phone_number}
-            </Text>
-          </Pressable>
-        ))
-      ) : (
-        <Text style={styles.noSuggestions}>
-          Aucun utilisateur trouvé.
-        </Text>
-      )}
+            {/* Nom du groupe */}
+            <Text style={styles.label}>Nom du groupe</Text>
+            <TextInput
+              style={[styles.input, nameFocused && styles.inputFocused]}
+              placeholder="Ex. Groupe familial"
+              placeholderTextColor="#9ca3af"
+              value={groupName}
+              onChangeText={setGroupName}
+              onFocus={() => setNameFocused(true)}
+              onBlur={() => setNameFocused(false)}
+              maxLength={100}
+              editable={!loading}
+            />
+
+            {/* Quorum */}
+            <View style={styles.quorumHeader}>
+              <Text style={styles.label}>Quorum</Text>
+              <Text style={styles.quorumValue}>
+                {quorum} validation{quorum > 1 ? 's' : ''} requise{quorum > 1 ? 's' : ''}
+              </Text>
+            </View>
+            <Slider
+              minimumValue={1}
+              maximumValue={maxQuorum}
+              step={1}
+              value={quorum}
+              onValueChange={setQuorum}
+              disabled={validators.length <= 1 || loading}
+              minimumTrackTintColor={LIME}
+              maximumTrackTintColor="#e5e7eb"
+              thumbTintColor={LIME}
+              style={styles.slider}
+            />
+            <View style={styles.sliderLabels}>
+              <Text style={styles.sliderLabel}>1</Text>
+              <Text style={styles.sliderLabel}>{maxQuorum}</Text>
+            </View>
+
+            {/* Validateurs */}
+            <Text style={[styles.label, { marginTop: 22 }]}>Validateurs à ajouter</Text>
+            <View style={styles.addRow}>
+              <TextInput
+                style={[styles.input, styles.addInput]}
+                placeholder="Numéro de téléphone"
+                placeholderTextColor="#9ca3af"
+                value={validatorInput}
+                onChangeText={setValidatorInput}
+                keyboardType="phone-pad"
+                editable={!loading}
+              />
+              <Pressable
+                style={[
+                  styles.addButton,
+                  validatorInput.trim().length > 0 && styles.addButtonActive,
+                ]}
+                onPress={() => addValidator(validatorInput)}
+                disabled={validatorInput.trim().length === 0 || loading}
+              >
+                <Text style={styles.addButtonText}>Ajouter</Text>
+              </Pressable>
+            </View>
+
+            {/* Suggestions */}
+            {validatorInput.trim().length >= 3 && (
+              <View style={styles.suggestions}>
+                {searching ? (
+                  <View style={styles.suggestionMessage}>
+                    <ActivityIndicator size="small" color={DARK} />
+                    <Text style={styles.suggestionMessageText}>
+                      Recherche des utilisateurs...
+                    </Text>
+                  </View>
+                ) : suggestions.length > 0 ? (
+                  suggestions.map((user) => (
+                    <Pressable
+                      key={user.id}
+                      style={styles.suggestionItem}
+                      onPress={() => addValidator(user.phone_number, user.full_name)}
+                    >
+                      <Text style={styles.suggestionName}>{user.full_name}</Text>
+                      <Text style={styles.suggestionPhone}>{user.phone_number}</Text>
+                    </Pressable>
+                  ))
+                ) : (
+                  <Text style={styles.noSuggestions}>Aucun utilisateur trouvé.</Text>
+                )}
+              </View>
+            )}
+
+            {/* Validateurs ajoutés */}
+            {validators.length > 0 && (
+              <View style={styles.chips}>
+                {validators.map((v) => (
+                  <View key={v.phone_number} style={styles.chip}>
+                    <Text style={styles.chipText} numberOfLines={1}>
+                      {v.label}
+                    </Text>
+                    <Pressable
+                      onPress={() => removeValidator(v.phone_number)}
+                      hitSlop={8}
+                      disabled={loading}
+                    >
+                      <Ionicons name="close-circle" size={18} color="#6b7280" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {validators.length === 0 && (
+              <Text style={styles.hint}>
+                Ajoutez au moins un validateur pour continuer.
+              </Text>
+            )}
+
+            {/* Bouton principal */}
+            <Pressable
+              style={[styles.submitButton, canSubmit && styles.submitButtonActive]}
+              onPress={handleSubmit}
+              disabled={!canSubmit}
+            >
+              {loading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.submitButtonText}>Demander</Text>
+              )}
+            </Pressable>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
     </View>
-  )}
-</View>
-        ))}
-
-        {validators.length < 5 && (
-          <Pressable
-            style={styles.addButton}
-            onPress={addValidator}
-            disabled={loading}
-          >
-            <Text style={styles.addButtonText}>+ Ajouter un validateur</Text>
-          </Pressable>
-        )}
-
-        <Pressable
-          style={[styles.submitButton, loading && styles.disabledButton]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.submitButtonText}>Envoyer la demande</Text>
-          )}
-        </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
+  root: { flex: 1, backgroundColor: 'transparent' },
+  sheetWrapper: { flex: 1, justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '88%',
+    paddingTop: 10,
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
+  handle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#d1d5db',
     marginBottom: 8,
+  },
+  content: { paddingHorizontal: 22, paddingBottom: 34 },
+
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: 8,
+  },
+  headerText: { flex: 1 },
+  eyebrow: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2, color: '#6b7280' },
+  title: { fontSize: 28, fontWeight: '800', color: DARK, marginTop: 6 },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   subtitle: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 22,
     color: '#6b7280',
-    marginBottom: 24,
+    marginTop: 8,
+    marginBottom: 22,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  hint: {
-    color: '#6b7280',
-    fontSize: 13,
-    marginBottom: 8,
-  },
+
+  label: { fontSize: 14, fontWeight: '700', color: DARK, marginBottom: 8 },
   input: {
     backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
-    marginBottom: 18,
-    color: '#111827',
+    color: DARK,
   },
-  sectionHeader: {
+  inputFocused: { borderColor: LIME },
+
+  quorumHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 22,
   },
-  counter: {
-    color: '#6b7280',
-    marginBottom: 8,
+  quorumValue: { fontSize: 12, color: '#6b7280', marginBottom: 8 },
+  slider: { width: '100%', height: 32 },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 6,
   },
-  validatorRow: {
+  sliderLabel: { fontSize: 12, color: '#6b7280' },
+
+  addRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  addInput: { flex: 1 },
+  addButton: {
+    backgroundColor: '#eef7d6',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderRadius: 14,
+  },
+  addButtonActive: { backgroundColor: LIME },
+  addButtonText: { fontSize: 14, fontWeight: '700', color: '#4d6b12' },
+
+  suggestions: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 14,
+    marginTop: 10,
+    overflow: 'hidden',
+  },
+  suggestionItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  suggestionName: { fontSize: 15, fontWeight: '600', color: DARK },
+  suggestionPhone: { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  suggestionMessage: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14 },
+  suggestionMessageText: { color: '#6b7280', fontSize: 13 },
+  noSuggestions: { color: '#6b7280', padding: 14, fontSize: 13 },
+
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
+    gap: 6,
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 8,
+    paddingLeft: 12,
+    paddingRight: 8,
+    borderRadius: 20,
+    maxWidth: '100%',
   },
-  validatorInputContainer: {
-    flex: 1,
-  },
-  validatorLabel: {
-    fontSize: 14,
-    color: '#4b5563',
-    marginBottom: 6,
-  },
-  removeButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    marginBottom: 18,
-  },
-  removeButtonText: {
-    color: '#dc2626',
-    fontWeight: '600',
-  },
-  addButton: {
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: '#2563eb',
-    borderRadius: 10,
-    borderStyle: 'dashed',
-    marginBottom: 24,
-  },
-  addButtonText: {
-    color: '#2563eb',
-    fontWeight: '600',
-  },
+  chipText: { fontSize: 14, color: DARK, fontWeight: '500', flexShrink: 1 },
+
+  hint: { fontSize: 12, color: '#6b7280', marginTop: 10 },
+
   submitButton: {
-    backgroundColor: '#2563eb',
-    padding: 16,
-    borderRadius: 10,
+    backgroundColor: '#d1d5db',
+    paddingVertical: 18,
+    borderRadius: 16,
     alignItems: 'center',
+    marginTop: 22,
   },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-
-  suggestionsContainer: {
-  backgroundColor: '#ffffff',
-  borderWidth: 1,
-  borderColor: '#d1d5db',
-  borderRadius: 10,
-  marginTop: -14,
-  marginBottom: 18,
-  overflow: 'hidden',
-},
-
-suggestionItem: {
-  paddingHorizontal: 14,
-  paddingVertical: 12,
-  borderBottomWidth: 1,
-  borderBottomColor: '#e5e7eb',
-},
-
-suggestionName: {
-  color: '#111827',
-  fontSize: 15,
-  fontWeight: '600',
-},
-
-suggestionPhone: {
-  color: '#6b7280',
-  fontSize: 13,
-  marginTop: 3,
-},
-
-suggestionMessage: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 8,
-  padding: 14,
-},
-
-suggestionMessageText: {
-  color: '#6b7280',
-  fontSize: 13,
-},
-
-noSuggestions: {
-  color: '#6b7280',
-  padding: 14,
-  fontSize: 13,
-},
+  submitButtonActive: { backgroundColor: DARK },
+  submitButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
 });

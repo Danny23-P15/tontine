@@ -32,3 +32,11 @@ export const respondToOperation = async (
 
   return response.data;
 };
+
+export const cancelOperation = async (reference: string) => {
+  const response = await api.post('operations/cancel/', {
+    reference,
+  });
+
+  return response.data;
+};

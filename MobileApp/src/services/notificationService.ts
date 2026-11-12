@@ -83,8 +83,5 @@ export const getPendingNotifications = async () => {
 
 export const getNotificationInbox = async () => {
   const response = await api.get('notifications/inbox/');
-  return response.data as {
-    count: number;
-    results: PendingNotification[];
-  };
+  return response.data;
 }

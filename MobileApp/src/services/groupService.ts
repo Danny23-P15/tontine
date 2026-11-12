@@ -47,3 +47,43 @@ export const requestRemoveValidator = async (
 
   return response.data;
 };
+
+export const getGroupBalance = async (group_id: number) => {
+  const response = await api.get(`groups/${group_id}/balance/`);
+  return response.data;
+}
+
+export interface RequestTransactionResponse {
+  reference: string;
+}
+
+export const requestTransaction = async (
+  group_id: number,
+  phone_number: string,
+  amount: number,
+  reason: string
+): Promise<RequestTransactionResponse> => {
+  const response = await api.post<RequestTransactionResponse>(
+    `groups/${group_id}/transactions/request/`,
+    {
+      phone_number,
+      amount,
+      reason,
+    }
+  );
+
+  return response.data;
+};
+
+export const requestDeleteGroup = async (group_id: number) => {
+  const response = await api.post('groups/delete/request/', {
+    group_id,
+  });
+
+  return response.data;
+};
+
+export const getMyInitiatedOperations = async () => {
+  const response = await api.get('operations/initiated/');
+  return response.data;
+};
