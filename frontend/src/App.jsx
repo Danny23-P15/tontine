@@ -14,6 +14,7 @@ import TransactionsPage from "./pages/TransactionsPage";
 import GroupBalancePage from "./pages/GroupBalancePage";
 import GroupTransactionsPage from "./pages/GroupTransactionsPage";
 import OperationsList from "./pages/OperationsList";
+import OperationDetailPage from "./pages/OperationDetailPage";
 import AdminOperationsPage from "./pages/AdminOperationsPage";
 import GroupStatsPage from "./pages/GroupStatsPage";
 
@@ -41,7 +42,7 @@ function App() {
 
 
           <Route
-            path="/notifications"
+            path="/operations"
             element={
               <PrivateRoute>
                 <Layout>
@@ -56,6 +57,17 @@ function App() {
               <PrivateRoute>
                 <Layout>
                   <GroupDetailPage />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/operations/:reference"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <OperationDetailPage />
                 </Layout>
               </PrivateRoute>
             }
@@ -150,7 +162,7 @@ function App() {
           />
 
           <Route
-            path="/operations"
+            path="/notifications"
             element={
               <PrivateRoute>
                 <Layout>

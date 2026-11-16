@@ -262,6 +262,7 @@ class Operation(models.Model):
     def __str__(self):
         return f"{self.operation_type} - {self.reference}"
 
+
 class ValidationStatus(models.TextChoices):
     PENDING = "PENDING", "Pending"
     ACCEPTED = "ACCEPTED", "Accepted"

@@ -7,10 +7,12 @@ from groups.models import (
     TemporaryAddValidator,
     GroupRole,
     OperationValidation,
+    Operation,
     OperationType,
     ValidationStatus,
     OperationStatus
 )
+from core.models import User
 from notifications.constants import OperationEvent
 from notifications.models import Notification
 
@@ -36,7 +38,7 @@ def get_pending_notifications(user):
         temp_group__is_cancelled=False,
         temp_group__expires_at__gt=now
     )
-
+# payload
     for validator in temp_validations:
         temp_group = validator.temp_group
 
@@ -115,7 +117,8 @@ def get_pending_notifications(user):
                 "endpoint": "/api/operations/respond/",
                 "method": "POST",
                 "payload": {
-                    "operation_id": operation.id
+                    "operation_id": operation.id,
+                    "reference": operation.reference
                 }
             },
 
@@ -297,6 +300,147 @@ def get_pending_notifications(user):
 
 
 
+def get_pending_notification_detail(user, request_id):
+    phone_number = user.phone_number
+    now = timezone.now()
+    temp_group_prefix = "temp-group-"
+
+    if request_id.startswith(temp_group_prefix):
+        identifier, separator, recipient_phone = request_id[
+            len(temp_group_prefix):
+        ].partition("-to-")
+        if not separator or recipient_phone != phone_number:
+            return None
+
+        try:
+            temp_group_id = int(identifier)
+        except ValueError:
+            return None
+
+        validator = TemporaryGroupValidator.objects.select_related(
+            "temp_group"
+        ).filter(
+            temp_group_id=temp_group_id,
+            phone_number=phone_number,
+            has_accepted__isnull=True,
+            temp_group__is_cancelled=False,
+            temp_group__expires_at__gt=now
+        ).first()
+        if validator is None:
+            return None
+
+        temp_group = validator.temp_group
+        accepted_count = temp_group.validators.filter(has_accepted=True).count()
+        initiator = User.objects.filter(
+            phone_number=temp_group.initiator_phone_number
+        ).values("phone_number", "full_name").first()
+
+        return {
+            "id": request_id,
+            "request_type": "GROUP_CREATION_REQUEST",
+            "operation_type": "GROUP_CREATION",
+            "operation_type_display": "Création de groupe",
+            "group": {"id": None, "name": temp_group.group_name},
+            "initiator": initiator or {
+                "phone_number": temp_group.initiator_phone_number,
+                "full_name": None
+            },
+            "initiated_at": temp_group.created_at,
+            "expires_at": temp_group.expires_at,
+            "status": "PENDING",
+            "details": {
+                "quorum": temp_group.quorum,
+                "validators_required": temp_group.validators.count(),
+                "validators_accepted": accepted_count
+            }
+        }
+
+    operation_prefixes = {
+        "add-validator-op-": OperationType.ADD_VALIDATOR,
+        "remove-validator-op-": OperationType.REMOVE_VALIDATOR,
+        "delete-group-op-": OperationType.DELETE_GROUP,
+        "transaction-op-": OperationType.TRANSACTION
+    }
+
+    for prefix, operation_type in operation_prefixes.items():
+        if not request_id.startswith(prefix):
+            continue
+
+        try:
+            operation_id = int(request_id[len(prefix):])
+        except ValueError:
+            return None
+
+        validation = OperationValidation.objects.select_related(
+            "operation",
+            "operation__group"
+        ).filter(
+            operation_id=operation_id,
+            validator_phone_number=phone_number,
+            status=ValidationStatus.PENDING,
+            operation__operation_type=operation_type,
+            operation__status=OperationStatus.PENDING,
+            operation__expires_at__gt=now
+        ).first()
+        if validation is None:
+            return None
+
+        operation = validation.operation
+        accepted_count = operation.validations.filter(
+            status=ValidationStatus.ACCEPTED
+        ).count()
+        initiator = User.objects.filter(
+            phone_number=operation.initiator_phone_number
+        ).values("phone_number", "full_name").first()
+
+        return {
+            "id": request_id,
+            "request_type": f"{operation_type}_REQUEST",
+            "operation_type": operation.operation_type,
+            "operation_type_display": operation.get_operation_type_display(),
+            "group": {
+                "id": operation.group_id,
+                "name": operation.group.group_name
+            },
+            "initiator": initiator or {
+                "phone_number": operation.initiator_phone_number,
+                "full_name": None
+            },
+            "initiated_at": operation.created_at,
+            "expires_at": operation.expires_at,
+            "status": operation.status,
+            "details": {
+                "payload": operation.payload,
+                "validators_required": operation.group.quorum,
+                "validators_accepted": accepted_count
+            }
+        }
+
+    return None
+
+
+
+# def get_notification_inbox(user):
+#     notifications = Notification.objects.filter(
+#         recipient_phone_number=user.phone_number
+#     ).order_by("-created_at")
+
+#     return {
+#         "count": notifications.count(),
+#         "results": [
+#             {
+#                 "id": n.id,
+#                 "title": n.title,
+#                 "message": n.message,
+#                 "created_at": n.created_at,
+#                 # "actionable": n.actionable,
+#                 "source_type": n.source_type,
+#             }
+#             for n in notifications
+#         ]
+#     }
+
+
 def get_notification_inbox(user):
     notifications = Notification.objects.filter(
         recipient_phone_number=user.phone_number
@@ -310,9 +454,24 @@ def get_notification_inbox(user):
                 "title": n.title,
                 "message": n.message,
                 "created_at": n.created_at,
-                # "actionable": n.actionable,
+
+                # Source de la notification
                 "source_type": n.source_type,
+                "source_reference": n.source_reference,
+
+                # Informations sur l'action
+                "action_required": n.action_required,
+                "action_type": n.action_type,
+                "available_actions": n.available_actions,
+
+                # État
+                "is_read": n.is_read,
+
+                # Données complémentaires
+                "payload": n.payload,
             }
             for n in notifications
         ]
     }
+
+# operation_id

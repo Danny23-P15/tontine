@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { Stack, router, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -95,6 +95,32 @@ export default function NotificationsScreen() {
     setNotificationToReject(null);
     setRejectionReason('');
   };
+
+
+const handleOpenOperation = (item: PendingNotification) => {
+  // Une demande de création de groupe n'est pas une opération classique.
+  if (item.type === 'GROUP_CREATION_REQUEST') {
+    return;
+  }
+
+  const reference = item.action?.payload?.reference;
+
+  if (!reference) {
+    Alert.alert(
+      'Détail indisponible',
+      "La référence de cette opération est absente de la notification."
+    );
+    return;
+  }
+
+  router.push({
+    pathname: '/pending-request/[reference]',
+    params: {
+      reference: String(reference),
+    },
+  });
+};
+
 
   const handleRespond = async (
     item: PendingNotification,
@@ -272,73 +298,98 @@ export default function NotificationsScreen() {
               const color = AVATAR_COLORS[index % AVATAR_COLORS.length];
               const isLast = index === notifications.length - 1;
               const groupName =
-                item.context?.group_name != null
-                  ? String(item.context.group_name)
-                  : '';
+                item.context?.group_name != null ? String(item.context.group_name) : '';
               const initials = getInitials(groupName);
               const processing = processingId === item.id;
+
+              const reference = item.action?.payload?.reference ?? item.reference;
+              const canOpen = typeof reference === 'string' || typeof reference === 'number';
+
+              const openOperation = () => {
+                if (!canOpen) return;
+                router.push({
+                  pathname: '/pending-request/[reference]',
+                  params: { reference: String(reference) },
+                });
+              };
 
               return (
                 <View
                   key={String(item.id)}
-                  style={[styles.row, !isLast && styles.rowBorder]}
+                  style={[styles.rowWrapper, !isLast && styles.rowBorder]}
                 >
-                  <View style={[styles.avatar, { backgroundColor: color.bg }]}>
-                    {initials ? (
-                      <Text style={[styles.avatarText, { color: color.fg }]}>
-                        {initials}
-                      </Text>
-                    ) : (
-                      <Ionicons name="notifications-outline" size={20} color={color.fg} />
-                    )}
-                  </View>
+                  {/* Zone cliquable : avatar + texte */}
+                  <Pressable
+                    onPress={openOperation}
+                    disabled={!canOpen}
+                    style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ouvrir la demande ${item.title}`}
+                  >
+                    <View style={[styles.avatar, { backgroundColor: color.bg }]}>
+                      {initials ? (
+                        <Text style={[styles.avatarText, { color: color.fg }]}>{initials}</Text>
+                      ) : (
+                        <Ionicons name="notifications-outline" size={20} color={color.fg} />
+                      )}
+                    </View>
 
-                  <View style={styles.rowBody}>
-                    <Text style={styles.title}>{item.title}</Text>
-                    <Text style={styles.message}>{item.message}</Text>
+                    <View style={styles.rowBody}>
+                    <Pressable
+  onPress={() => handleOpenOperation(item)}
+  disabled={
+    item.type === 'GROUP_CREATION_REQUEST' ||
+    !item.action
+  }
+>
+  <Text style={styles.title}>{item.title}</Text>
+  <Text style={styles.message}>{item.message}</Text>
 
-                    {!!groupName && (
-                      <Text style={styles.detail}>Groupe : {groupName}</Text>
-                    )}
+  {item.type !== 'GROUP_CREATION_REQUEST' && item.action && (
+    <Text style={styles.detail}>
+      Voir les détails →
+    </Text>
+  )}
+</Pressable>
+                      {!!groupName && <Text style={styles.detail}>Groupe : {groupName}</Text>}
+                      <Text style={styles.date}>{formatRelativeDate(item.created_at)}</Text>
+                    </View>
 
-                    <Text style={styles.date}>
-                      {formatRelativeDate(item.created_at)}
-                    </Text>
+                    {item.action && <View style={styles.unreadDot} />}
+                  </Pressable>
 
-                    {item.action && (
-                      <View style={styles.actions}>
-                        <Pressable
-                          style={[
-                            styles.actionButton,
-                            styles.acceptButton,
-                            processingId !== null && styles.disabled,
-                          ]}
-                          onPress={() => handleRespond(item, true)}
-                          disabled={processingId !== null}
-                        >
-                          {processing ? (
-                            <ActivityIndicator size="small" color="#ffffff" />
-                          ) : (
-                            <Text style={styles.acceptText}>Accepter</Text>
-                          )}
-                        </Pressable>
+                  {/* Actions : hors de la zone cliquable */}
+                  {item.action && (
+                    <View style={styles.actions}>
+                      <Pressable
+                        style={[
+                          styles.actionButton,
+                          styles.acceptButton,
+                          processingId !== null && styles.disabled,
+                        ]}
+                        onPress={() => handleRespond(item, true)}
+                        disabled={processingId !== null}
+                      >
+                        {processing ? (
+                          <ActivityIndicator size="small" color="#ffffff" />
+                        ) : (
+                          <Text style={styles.acceptText}>Accepter</Text>
+                        )}
+                      </Pressable>
 
-                        <Pressable
-                          style={[
-                            styles.actionButton,
-                            styles.refuseButton,
-                            processingId !== null && styles.disabled,
-                          ]}
-                          onPress={() => handleRespond(item, false)}
-                          disabled={processingId !== null}
-                        >
-                          <Text style={styles.refuseText}>Refuser</Text>
-                        </Pressable>
-                      </View>
-                    )}
-                  </View>
-
-                  {item.action && <View style={styles.unreadDot} />}
+                      <Pressable
+                        style={[
+                          styles.actionButton,
+                          styles.refuseButton,
+                          processingId !== null && styles.disabled,
+                        ]}
+                        onPress={() => handleRespond(item, false)}
+                        disabled={processingId !== null}
+                      >
+                        <Text style={styles.refuseText}>Refuser</Text>
+                      </Pressable>
+                    </View>
+                  )}
                 </View>
               );
             })
@@ -542,8 +593,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 14,
     padding: 16,
+    paddingBottom: 0,
   },
+  rowPressed: { backgroundColor: '#faf9f4' },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: '#f0eee6' },
+  rowWrapper: { paddingBottom: 16 },
   avatar: {
     width: 48,
     height: 48,
@@ -566,7 +620,13 @@ const styles = StyleSheet.create({
   },
 
   // ----- Actions -----
-  actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  actions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+    marginLeft: 78,
+    marginRight: 16,
+  },
   actionButton: {
     flex: 1,
     paddingVertical: 11,

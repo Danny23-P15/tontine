@@ -3,26 +3,40 @@ from groups.models import Operation, ValidationStatus
 from groups.services import respond_to_operation_validation
 
 class PendingOperationSerializer(serializers.ModelSerializer):
+    operation_reference = serializers.CharField(source="reference", read_only=True)
+    validation_reference = serializers.SerializerMethodField()
     group = serializers.SerializerMethodField()
     approved_count = serializers.SerializerMethodField()
     rejected_count = serializers.SerializerMethodField()
+    validators_required = serializers.IntegerField(source="group.quorum", read_only=True)
+    validators_accepted = serializers.SerializerMethodField()
     my_validation_status = serializers.SerializerMethodField()
     transaction_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Operation
         fields = [
+            "validation_reference",
             "operation_reference",
             "operation_type",
+            "created_at",
             "expires_at",
             "group",
             "initiator_phone_number",
-            "quorum",
+            "payload",
+            "validators_required",
+            "validators_accepted",
             "approved_count",
             "rejected_count",
             "my_validation_status",
             "transaction_details",
         ]
+
+    def get_validation_reference(self, obj):
+        phone = self.context["validator_phone"]
+        return obj.validations.filter(
+            validator_phone_number=phone
+        ).values_list("validation_reference", flat=True).first()
 
     def get_group(self, obj):
         return {
@@ -34,6 +48,9 @@ class PendingOperationSerializer(serializers.ModelSerializer):
         return obj.validations.filter(
             status=ValidationStatus.ACCEPTED
         ).count()
+
+    def get_validators_accepted(self, obj):
+        return self.get_approved_count(obj)
 
     def get_rejected_count(self, obj):
         return obj.validations.filter(

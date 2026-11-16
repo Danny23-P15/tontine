@@ -787,3 +787,93 @@ class ValidatorSuggestionsAPIView(APIView):
                 break
 
         return Response({"results": results})
+
+
+class OperationDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, reference):
+        phone_number = request.user.phone_number
+
+        # 1. Récupérer l'opération
+        operation = get_object_or_404(
+            Operation.objects.select_related("group").prefetch_related(
+                "validations"
+            ),
+            reference=reference
+        )
+
+        # 2. Vérifier que l'utilisateur est un validateur
+        # désigné pour cette opération
+        user_validation = operation.validations.filter(
+            validator_phone_number=phone_number
+        ).first()
+
+        if not user_validation:
+            return Response(
+                {"detail": "Vous n'êtes pas autorisé à consulter cette demande."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # 3. Récupérer toutes les validations
+        validations = operation.validations.all()
+
+        accepted_count = validations.filter(
+            status=ValidationStatus.ACCEPTED
+        ).count()
+
+        pending_count = validations.filter(
+            status=ValidationStatus.PENDING
+        ).count()
+
+        # 4. Vérifier si l'utilisateur peut encore répondre
+        is_expired = operation.expires_at <= timezone.now()
+
+        can_respond = (
+            operation.status == OperationStatus.PENDING
+            and user_validation.status == ValidationStatus.PENDING
+            and not is_expired
+        )
+
+        # 5. Préparer les validations pour le frontend
+        validation_data = [
+            {
+                "validator_phone_number": validation.validator_phone_number,
+                "status": validation.status,
+                "rejection_reason": validation.rejection_reason,
+                "validated_at": validation.validated_at,
+            }
+            for validation in validations
+        ]
+
+        # 6. Retourner le détail
+        data = {
+            "reference": operation.reference,
+            "operation_type": operation.operation_type,
+            "status": operation.status,
+
+            "initiator_phone_number": operation.initiator_phone_number,
+
+            "group": {
+                "id": operation.group.id,
+                "group_name": operation.group.group_name,
+                "quorum": operation.group.quorum,
+            },
+
+            "payload": operation.payload or {},
+
+            "created_at": operation.created_at,
+            "expires_at": operation.expires_at,
+            "completed_at": operation.completed_at,
+
+            "validations": validation_data,
+
+            "approved_count": accepted_count,
+            "pending_count": pending_count,
+            "total_validators": validations.count(),
+
+            "can_respond": can_respond,
+            "my_validation_status": user_validation.status,
+        }
+
+        return Response(data, status=status.HTTP_200_OK)

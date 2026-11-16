@@ -176,7 +176,7 @@ export default function GroupesScreen() {
       <View style={styles.shortcuts}>
         <Pressable
           style={styles.shortcut}
-          onPress={() => router.push('/notifications')}
+          onPress={() => router.push('/pendingoperation')}
           accessibilityRole="button"
         >
           <Ionicons name="notifications-outline" size={18} color="#111827" />

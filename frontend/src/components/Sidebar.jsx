@@ -12,7 +12,8 @@ import {
   LogOut, 
   ShieldCheck,
   DollarSign,
-  Settings
+  Settings,
+  ClipboardCheck
 } from "lucide-react";
 import axios from "axios";
 import "../css/Sidebar.css";
@@ -57,6 +58,10 @@ function Sidebar() {
           <NavLink to="/groups/create" className="nav-link">
             <PlusCircle size={18} className="icon" /> 
             <span className="link-text">Création de groupe</span>
+          </NavLink>
+          <NavLink to="/operations" className="nav-link">
+            <ClipboardCheck size={18} className="icon" />
+            <span className="link-text">À répondre</span>
           </NavLink>
 
           <p className="nav-section-title">Historique</p>

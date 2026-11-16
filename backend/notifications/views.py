@@ -3,7 +3,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from notifications.services.pending_notifications import get_pending_notifications, get_notification_inbox
+from notifications.services.pending_notifications import (
+    get_pending_notifications,
+    get_pending_notification_detail,
+    get_notification_inbox
+)
 from notifications.models import Notification
 
 
@@ -14,6 +18,18 @@ class PendingNotificationsAPIView(APIView):
         data = get_pending_notifications(request.user)
         print("USER CONNECTÉ:", request.user.phone_number)
 
+        return Response(data, status=status.HTTP_200_OK)
+
+class PendingNotificationDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, request_id):
+        data = get_pending_notification_detail(request.user, request_id)
+        if data is None:
+            return Response(
+                {"detail": "Demande non trouvée"},
+                status=status.HTTP_404_NOT_FOUND
+            )
         return Response(data, status=status.HTTP_200_OK)
 
 class NotificationInboxAPIView(APIView):
