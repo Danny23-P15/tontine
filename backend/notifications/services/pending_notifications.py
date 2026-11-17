@@ -174,7 +174,9 @@ def get_pending_notifications(user):
                 "endpoint": "/api/operations/respond/",
                 "method": "POST",
                 "payload": {
-                    "operation_id": operation.id
+                    "operation_id": operation.id,
+                    "reference": operation.reference
+
                 }
             },
 
@@ -226,7 +228,9 @@ def get_pending_notifications(user):
                 "endpoint": "/api/operations/respond/",
                 "method": "POST",
                 "payload": {
-                    "operation_id": operation.id
+                    "operation_id": operation.id,
+                    "reference": operation.reference
+
                 }
             },
 
@@ -279,7 +283,8 @@ def get_pending_notifications(user):
                 "endpoint": "/api/operations/respond/",
                 "method": "POST",
                 "payload": {
-                    "operation_id": operation.id
+                    "operation_id": operation.id,
+                    "reference": operation.reference
                 }
             },
 

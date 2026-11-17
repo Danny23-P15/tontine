@@ -13,10 +13,11 @@ urlpatterns = [
     path("groups/<int:group_id>/validator/add/", RequestAddValidatorAPIView.as_view()),
     # path("operations/add-validator/respond/", RespondAddValidatorAPIView.as_view()),
     path("operations/respond/", RespondOperationAPIView.as_view()),
+    path("operations/initiated/", MyInitiatedOperationsAPIView.as_view()),
+
     path("operations/<str:reference>/", OperationDetailAPIView.as_view(), name="operation-detail"),
     path("groups/<int:group_id>/remove-validator/",RemoveValidatorAPIView.as_view(),name="remove-validator"),
     path("groups/delete/request/",RequestDeleteGroupAPIView.as_view()),
-    path("operations/initiated/", MyInitiatedOperationsAPIView.as_view()),
     path("operations/cancel/", CancelOperationAPIView.as_view()),
     path("groups/<int:group_id>/transactions/request/", RequestTransactionAPIView.as_view(), name="request-transaction"),
     path("groups/<int:group_id>/balance/", GroupBalanceAPIView.as_view(), name="group-balance"),
