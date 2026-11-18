@@ -787,7 +787,44 @@ class ValidatorSuggestionsAPIView(APIView):
                 break
 
         return Response({"results": results})
+# view pour voir l'historique des opérations d'un groupe
+class GroupOperationsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request, group_id):
+        # 1. Vérifier que le groupe existe
+        group = get_object_or_404(ValidationGroup, id=group_id)
+
+        # 2. Vérifier que l'utilisateur est membre du groupe
+        is_member = GroupMembership.objects.filter(
+            group=group,
+            phone_number=request.user.phone_number,
+            left_at__isnull=True
+        ).exists()
+
+        if not is_member:
+            return Response(
+                {"detail": "Vous n'êtes pas membre de ce groupe."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # 3. Récupérer les opérations du groupe
+        operations = Operation.objects.filter(group=group).order_by("-created_at")
+
+        # 4. Préparer les données pour le frontend
+        data = []
+        for op in operations:
+            data.append({
+                "reference": op.reference,
+                "operation_type": op.operation_type,
+                "status": op.status,
+                "initiator_phone_number": op.initiator_phone_number,
+                "created_at": op.created_at,
+                "expires_at": op.expires_at,
+                "completed_at": op.completed_at,
+            })
+
+        return Response({"results": data}, status=status.HTTP_200_OK)
 
 class OperationDetailAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -877,3 +914,80 @@ class OperationDetailAPIView(APIView):
         }
 
         return Response(data, status=status.HTTP_200_OK)
+
+class OperationHistoryDetailAPIView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, reference):
+        phone_number = request.user.phone_number
+
+        operation = get_object_or_404(
+            Operation.objects.select_related("group").prefetch_related(
+                "validations"
+            ),
+            reference=reference
+        )
+
+        # Vérifier si l'utilisateur est l'initiateur
+        is_initiator = (
+            operation.group.initiator_phone_number == phone_number
+        )
+
+        # Vérifier si l'utilisateur est un membre actif
+        is_member = GroupMembership.objects.filter(
+            group=operation.group,
+            phone_number=phone_number,
+            left_at__isnull=True
+        ).exists()
+
+        # L'initiateur OU un membre actif peut consulter l'opération
+        if not (is_initiator or is_member):
+            return Response(
+                {"detail": "Vous n'êtes pas autorisé à consulter cette opération."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Récupérer les validations
+        validations = operation.validations.all()
+
+        accepted_count = validations.filter(
+            status=ValidationStatus.ACCEPTED
+        ).count()
+
+        pending_count = validations.filter(
+            status=ValidationStatus.PENDING
+        ).count()
+
+        validation_data = [
+            {
+                "validator_phone_number": validation.validator_phone_number,
+                "status": validation.status,
+                "rejection_reason": validation.rejection_reason,
+                "validated_at": validation.validated_at,
+            }
+            for validation in validations
+        ]
+
+        data = {
+            "reference": operation.reference,
+            "operation_type": operation.operation_type,
+            "status": operation.status,
+            "initiator_phone_number": operation.initiator_phone_number,
+            "group": {
+                "id": operation.group.id,
+                "group_name": operation.group.group_name,
+                "quorum": operation.group.quorum,
+            },
+            "payload": operation.payload or {},
+            "created_at": operation.created_at,
+            "expires_at": operation.expires_at,
+            "completed_at": operation.completed_at,
+            "validations": validation_data,
+            "approved_count": accepted_count,
+            "pending_count": pending_count,
+            "total_validators": validations.count(),
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+    

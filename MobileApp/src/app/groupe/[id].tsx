@@ -512,6 +512,14 @@ export default function GroupDetailScreen() {
             <Text style={styles.sectionLabel}>SUIVI</Text>
             <Text style={styles.sectionTitle}>État des opérations</Text>
           </View>
+          <Pressable
+            style={styles.historyButton}
+            onPress={() => router.push(`/groupe/operations/${group.id}`)}
+            accessibilityRole="button"
+          >
+            <Ionicons name="time-outline" size={16} color={DARK} />
+            <Text style={styles.historyButtonText}>Historique</Text>
+          </Pressable>
         </View>
 
         <View style={styles.formCard}>
@@ -1334,4 +1342,18 @@ const styles = StyleSheet.create({
   // ----- "Consulter" -----
   seeAllRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   seeAllText: { fontSize: 13, fontWeight: '600', color: DARK },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e8e6dc',
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+  },
+  historyButtonText: { fontSize: 13, fontWeight: '700', color: DARK },
 });
+
+//Historique

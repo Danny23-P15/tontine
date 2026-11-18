@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
@@ -7,13 +6,45 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import {
   getOperationDetail,
   OperationDetail,
 } from '../../services/operationService';
+
+/* ---------- Palette ---------- */
+const COLORS = {
+  hero: '#D4F26B',
+  ink: '#111827',
+  text: '#334155',
+  muted: '#94A3B8',
+  border: '#E2E8F0',
+  bg: '#F8FAFC',
+  white: '#FFFFFF',
+  green: '#16A34A',
+  greenBg: '#DCFCE7',
+  red: '#DC2626',
+  redBg: '#FEE2E2',
+  amber: '#B45309',
+  amberBg: '#FEF3C7',
+  blue: '#1D4ED8',
+  blueBg: '#DBEAFE',
+  slate: '#64748B',
+  slateBg: '#E2E8F0',
+};
+
+const AVATAR_COLORS = [
+  { bg: '#DCFCE7', fg: '#15803D' },
+  { bg: '#E0E7FF', fg: '#4338CA' },
+  { bg: '#FFEDD5', fg: '#C2410C' },
+  { bg: '#FCE7F3', fg: '#BE185D' },
+  { bg: '#CFFAFE', fg: '#0E7490' },
+];
 
 export default function OperationDetailScreen() {
   const { reference } = useLocalSearchParams<{ reference: string }>();
@@ -24,51 +55,51 @@ export default function OperationDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  const loadOperation = useCallback(async (refresh = false) => {
-    if (!reference) return;
+  const loadOperation = useCallback(
+    async (refresh = false) => {
+      if (!reference) return;
 
-    try {
-      if (refresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
+      try {
+        if (refresh) setRefreshing(true);
+        else setLoading(true);
+
+        setError('');
+        const data = await getOperationDetail(reference);
+        setOperation(data);
+      } catch (err: any) {
+        console.error('Erreur détail opération :', err);
+        setError(
+          err.response?.data?.detail ||
+            'Impossible de récupérer les détails de cette opération.'
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-
-      setError('');
-
-      const data = await getOperationDetail(reference);
-      setOperation(data);
-    } catch (err: any) {
-      console.error('Erreur détail opération :', err);
-
-      setError(
-        err.response?.data?.detail ||
-        "Impossible de récupérer les détails de cette opération."
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [reference]);
+    },
+    [reference]
+  );
 
   useEffect(() => {
     loadOperation();
   }, [loadOperation]);
 
+  /* ---------- Helpers ---------- */
   const formatDate = (value: string | null) => {
     if (!value) return 'Non disponible';
-
     const date = new Date(value);
-
     if (isNaN(date.getTime())) return 'Date inconnue';
 
-    return date.toLocaleString('fr-FR', {
-      day: '2-digit',
+    const day = date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
       month: 'long',
       year: 'numeric',
+    });
+    const time = date.toLocaleTimeString('fr-FR', {
       hour: '2-digit',
       minute: '2-digit',
     });
+    return `${day} à ${time.replace(':', ':')}`;
   };
 
   const operationTypeLabel = (type: string) => {
@@ -76,10 +107,22 @@ export default function OperationDetailScreen() {
       ADD_VALIDATOR: 'Ajout de validateur',
       REMOVE_VALIDATOR: 'Suppression de validateur',
       DELETE_GROUP: 'Suppression de groupe',
-      TRANSACTION: 'Transaction financière',
+      TRANSACTION: 'Transaction',
     };
-
     return labels[type] || type.replace(/_/g, ' ');
+  };
+
+  const operationIcon = (type: string): keyof typeof Ionicons.glyphMap => {
+    switch (type) {
+      case 'ADD_VALIDATOR':
+        return 'person-add-outline';
+      case 'REMOVE_VALIDATOR':
+        return 'person-remove-outline';
+      case 'DELETE_GROUP':
+        return 'trash-outline';
+      default:
+        return 'document-text-outline';
+    }
   };
 
   const statusLabel = (status: string) => {
@@ -91,55 +134,69 @@ export default function OperationDetailScreen() {
       CANCELLED: 'Annulée',
       ACCEPTED: 'Acceptée',
     };
-
     return labels[status] || status;
   };
 
-  const statusColor = (status: string) => {
+  // Libellé court pour les pastilles de validateurs
+  const validatorStatusLabel = (status: string) => {
+    switch (status) {
+      case 'ACCEPTED':
+        return 'A accepté';
+      case 'REJECTED':
+        return 'A refusé';
+      default:
+        return 'En attente';
+    }
+  };
+
+  const statusTone = (status: string) => {
     switch (status) {
       case 'ACCEPTED':
       case 'COMPLETED':
-        return '#16A34A';
+        return { fg: COLORS.green, bg: COLORS.greenBg, icon: 'checkmark-circle' as const };
       case 'REJECTED':
-        return '#DC2626';
+        return { fg: COLORS.red, bg: COLORS.redBg, icon: 'close-circle' as const };
       case 'EXPIRED':
       case 'CANCELLED':
-        return '#64748B';
+        return { fg: COLORS.slate, bg: COLORS.slateBg, icon: 'ban' as const };
       default:
-        return '#D97706';
+        return { fg: COLORS.amber, bg: COLORS.amberBg, icon: 'time' as const };
     }
   };
 
-  const renderPayloadValue = (value: any): string => {
-    if (value === null || value === undefined || value === '') {
-      return 'Non renseigné';
-    }
-
-    if (typeof value === 'object') {
-      return JSON.stringify(value, null, 2);
-    }
-
-    return String(value);
+  const formatAmount = (amount: any) => {
+    const n = Number(amount);
+    if (isNaN(n)) return null;
+    return `${n.toLocaleString('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} €`;
   };
 
-  const payloadLabel = (key: string) => {
-    const labels: Record<string, string> = {
-      amount: 'Montant',
-      phone_number: 'Numéro du bénéficiaire',
-      recipient_phone: 'Numéro du bénéficiaire',
-      reason: 'Motif',
-      validator_phone_number: 'Numéro du validateur',
-      validator_name: 'Nom du validateur',
-      group_name: 'Nom du groupe',
-    };
-
-    return labels[key] || key.replace(/_/g, ' ');
+  const getInitials = (name?: string, fallback?: string) => {
+    const source = (name || '').trim();
+    if (source) {
+      const parts = source.split(/\s+/);
+      return (
+        (parts[0]?.[0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')
+      ).toUpperCase();
+    }
+    return (fallback || '??').replace(/\D/g, '').slice(-2) || '??';
   };
 
+  const validityDelay = (created: string | null, expires: string | null) => {
+    if (!created || !expires) return null;
+    const diff = new Date(expires).getTime() - new Date(created).getTime();
+    if (isNaN(diff) || diff <= 0) return null;
+    return Math.round(diff / (1000 * 60 * 60));
+  };
+
+  /* ---------- États de chargement / erreur ---------- */
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <Stack.Screen options={{ headerShown: false }} />
+        <ActivityIndicator size="large" color={COLORS.ink} />
         <Text style={styles.loadingText}>Chargement des détails...</Text>
       </View>
     );
@@ -148,261 +205,242 @@ export default function OperationDetailScreen() {
   if (error || !operation) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>
-          {error || 'Opération introuvable.'}
-        </Text>
-
-        <Text
-          style={styles.retryText}
-          onPress={() => loadOperation()}
-        >
+        <Stack.Screen options={{ headerShown: false }} />
+        <Text style={styles.errorText}>{error || 'Opération introuvable.'}</Text>
+        <Text style={styles.retryText} onPress={() => loadOperation()}>
           Réessayer
         </Text>
-
-        <Text
-          style={styles.backText}
-          onPress={() => router.back()}
-        >
+        <Text style={styles.backText} onPress={() => router.back()}>
           Retour
         </Text>
       </View>
     );
   }
 
+  /* ---------- Données dérivées ---------- */
+  const payload: Record<string, any> = operation.payload || {};
+  const amount = formatAmount(payload.amount);
+  const title =
+    payload.reason ||
+    payload.title ||
+    payload.group_name ||
+    operationTypeLabel(operation.operation_type);
+  const heroSubtitle = [operationTypeLabel(operation.operation_type), amount]
+    .filter(Boolean)
+    .join(' · ');
+  const opTone = statusTone(operation.status);
+  const delay = validityDelay(operation.created_at, operation.expires_at);
+
+  const myStatus = operation.my_validation_status;
+  const myNotice = (() => {
+    if (myStatus === 'REJECTED') {
+      return {
+        icon: 'close' as const,
+        fg: COLORS.red,
+        bg: COLORS.redBg,
+        title: 'Vous avez refusé cette demande',
+        text: 'Votre réponse a bien été prise en compte.',
+      };
+    }
+    if (myStatus === 'ACCEPTED') {
+      return {
+        icon: 'checkmark' as const,
+        fg: COLORS.green,
+        bg: COLORS.greenBg,
+        title: 'Vous avez accepté cette demande',
+        text: 'Votre réponse a bien été prise en compte.',
+      };
+    }
+    if (operation.can_respond) {
+      return {
+        icon: 'notifications-outline' as const,
+        fg: COLORS.blue,
+        bg: COLORS.blueBg,
+        title: 'Votre réponse est attendue',
+        text: 'Répondez depuis vos notifications en attente.',
+      };
+    }
+    return {
+      icon: 'lock-closed-outline' as const,
+      fg: COLORS.slate,
+      bg: COLORS.slateBg,
+      title: 'Demande clôturée',
+      text: 'Vous ne pouvez plus répondre à cette demande.',
+    };
+  })();
+
+  /* ---------- Rendu ---------- */
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => loadOperation(true)}
-          colors={['#2563EB']}
-        />
-      }
-    >
-      {/* En-tête */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Détail de l'opération</Text>
-        <Text style={styles.reference}>
-          Référence : {operation.reference}
-        </Text>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <Stack.Screen options={{ headerShown: false }} />
 
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: statusColor(operation.status) + '18' },
-          ]}
+      {/* Barre de navigation */}
+      <View style={styles.navBar}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text
-            style={[
-              styles.statusText,
-              { color: statusColor(operation.status) },
-            ]}
-          >
-            {statusLabel(operation.status)}
-          </Text>
-        </View>
+          <Ionicons name="chevron-back" size={22} color={COLORS.ink} />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>Détails de la demande</Text>
+        <View style={styles.backButton} />
       </View>
 
-      {/* Informations générales */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Informations générales</Text>
-
-        <InfoRow
-          label="Type d'opération"
-          value={operationTypeLabel(operation.operation_type)}
-        />
-
-        <InfoRow
-          label="Groupe"
-          value={operation.group.group_name}
-        />
-
-        <InfoRow
-          label="Initiateur"
-          value={operation.initiator_phone_number}
-        />
-
-        <InfoRow
-          label="Quorum requis"
-          value={`${operation.group.quorum} validation(s)`}
-        />
-
-        <InfoRow
-          label="Date de création"
-          value={formatDate(operation.created_at)}
-        />
-
-        <InfoRow
-          label="Date d'expiration"
-          value={formatDate(operation.expires_at)}
-        />
-
-        {operation.completed_at && (
-          <InfoRow
-            label="Date de finalisation"
-            value={formatDate(operation.completed_at)}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadOperation(true)}
+            colors={[COLORS.ink]}
           />
-        )}
-      </View>
-
-      {/* Progression */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Progression des validations</Text>
-
-        <View style={styles.progressNumbers}>
-          <View style={styles.progressItem}>
-            <Text style={[styles.progressValue, { color: '#16A34A' }]}>
-              {operation.approved_count}
-            </Text>
-            <Text style={styles.progressLabel}>Acceptées</Text>
-          </View>
-
-          <View style={styles.progressItem}>
-            <Text style={[styles.progressValue, { color: '#D97706' }]}>
-              {operation.pending_count}
-            </Text>
-            <Text style={styles.progressLabel}>En attente</Text>
-          </View>
-
-          <View style={styles.progressItem}>
-            <Text style={styles.progressValue}>
-              {operation.total_validators}
-            </Text>
-            <Text style={styles.progressLabel}>Total</Text>
-          </View>
-        </View>
-
-        <View style={styles.progressBackground}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width:
-                  operation.total_validators > 0
-                    ? `${Math.min(
-                        100,
-                        (operation.approved_count /
-                          operation.total_validators) *
-                          100
-                      )}%`
-                    : '0%',
-              },
-            ]}
-          />
-        </View>
-
-        <Text style={styles.progressDescription}>
-          {operation.approved_count} validation(s) acceptée(s) sur{' '}
-          {operation.total_validators}
-        </Text>
-      </View>
-
-      {/* Contenu de l'opération */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Détails de la demande</Text>
-
-        {Object.entries(operation.payload || {}).length === 0 ? (
-          <Text style={styles.emptyText}>
-            Aucun détail supplémentaire.
-          </Text>
-        ) : (
-          Object.entries(operation.payload).map(([key, value]) => (
-            <InfoRow
-              key={key}
-              label={payloadLabel(key)}
-              value={renderPayloadValue(value)}
+        }
+      >
+        {/* Hero */}
+        <View style={styles.hero}>
+          <View style={styles.heroIcon}>
+            <Ionicons
+              name={operationIcon(operation.operation_type)}
+              size={26}
+              color={COLORS.white}
             />
-          ))
-        )}
-      </View>
-
-      {/* Liste des validateurs */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Liste des validateurs</Text>
-
-        {operation.validations.map((validation, index) => (
-          <View
-            key={`${validation.validator_phone_number}-${index}`}
-            style={styles.validatorRow}
-          >
-            <View style={styles.validatorInfo}>
-              <Text style={styles.validatorPhone}>
-                {validation.validator_phone_number}
-              </Text>
-
-              <Text style={styles.validatorDate}>
-                {validation.validated_at
-                  ? formatDate(validation.validated_at)
-                  : 'En attente de réponse'}
-              </Text>
-
-              {validation.rejection_reason ? (
-                <Text style={styles.rejectionReason}>
-                  Motif : {validation.rejection_reason}
-                </Text>
-              ) : null}
-            </View>
-
-            <Text
-              style={[
-                styles.validatorStatus,
-                { color: statusColor(validation.status) },
-              ]}
-            >
-              {statusLabel(validation.status)}
-            </Text>
           </View>
-        ))}
-      </View>
 
-      {/* État de la réponse personnelle */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Votre participation</Text>
-
-        <InfoRow
-          label="Votre statut"
-          value={statusLabel(operation.my_validation_status)}
-        />
-
-        <View
-          style={[
-            styles.responseNotice,
-            {
-              backgroundColor: operation.can_respond
-                ? '#EFF6FF'
-                : '#F1F5F9',
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.responseNoticeText,
-              {
-                color: operation.can_respond ? '#1D4ED8' : '#64748B',
-              },
-            ]}
-          >
-            {operation.can_respond
-              ? 'Vous pouvez encore répondre à cette demande depuis les notifications en attente.'
-              : 'Vous ne pouvez plus répondre à cette demande.'}
-          </Text>
+          <View style={styles.heroTexts}>
+            <Text style={styles.heroSubtitle} numberOfLines={1}>
+              {heroSubtitle}
+            </Text>
+            <Text style={styles.heroTitle} numberOfLines={2}>
+              {title}
+            </Text>
+            <View style={[styles.heroBadge, { backgroundColor: opTone.bg }]}>
+              <Text style={[styles.heroBadgeText, { color: opTone.fg }]}>
+                {statusLabel(operation.status)}
+              </Text>
+            </View>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+
+        <View style={styles.body}>
+          {/* Informations */}
+          <Text style={styles.eyebrow}>Informations</Text>
+          <Text style={styles.sectionTitle}>À propos de la demande</Text>
+
+          <View style={styles.card}>
+            <InfoRow label="Groupe" value={operation.group.group_name} />
+            <InfoRow label="Initiateur" value={operation.initiator_phone_number} />
+            <InfoRow label="Initiée le" value={formatDate(operation.created_at)} />
+            <InfoRow
+              label="Expire le"
+              value={formatDate(operation.expires_at)}
+              last={!operation.completed_at}
+            />
+            {operation.completed_at && (
+              <InfoRow
+                label="Finalisée le"
+                value={formatDate(operation.completed_at)}
+                last
+              />
+            )}
+          </View>
+
+          {delay !== null && (
+            <Text style={styles.footnote}>
+              Délai de validation : {delay} heures après l'initiation.
+            </Text>
+          )}
+
+          {/* Validateurs */}
+          <View style={styles.sectionHeaderRow}>
+            <View>
+              <Text style={styles.eyebrow}>Décisions</Text>
+              <Text style={styles.sectionTitle}>Validateurs</Text>
+            </View>
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>
+                {operation.validations.length}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            {operation.validations.map((validation: any, index: number) => {
+              const tone = statusTone(validation.status);
+              const avatar = AVATAR_COLORS[index % AVATAR_COLORS.length];
+              const displayName =
+                validation.validator_name || validation.validator_phone_number;
+              const isLast = index === operation.validations.length - 1;
+
+              return (
+                <View
+                  key={`${validation.validator_phone_number}-${index}`}
+                  style={[styles.validatorRow, isLast && styles.noBorder]}
+                >
+                  <View style={[styles.avatar, { backgroundColor: avatar.bg }]}>
+                    <Text style={[styles.avatarText, { color: avatar.fg }]}>
+                      {getInitials(
+                        validation.validator_name,
+                        validation.validator_phone_number
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.validatorInfo}>
+                    <Text style={styles.validatorName} numberOfLines={1}>
+                      {displayName}
+                    </Text>
+                    {validation.rejection_reason ? (
+                      <Text style={styles.rejectionReason} numberOfLines={2}>
+                        Motif : {validation.rejection_reason}
+                      </Text>
+                    ) : validation.validated_at ? (
+                      <Text style={styles.validatorDate}>
+                        {formatDate(validation.validated_at)}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  <View style={[styles.pill, { backgroundColor: tone.bg }]}>
+                    <Ionicons name={tone.icon} size={13} color={tone.fg} />
+                    <Text style={[styles.pillText, { color: tone.fg }]}>
+                      {validatorStatusLabel(validation.status)}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Participation personnelle */}
+          <View style={[styles.card, styles.noticeCard]}>
+            <View style={[styles.noticeIcon, { backgroundColor: myNotice.fg }]}>
+              <Ionicons name={myNotice.icon} size={18} color={COLORS.white} />
+            </View>
+            <View style={styles.noticeTexts}>
+              <Text style={styles.noticeTitle}>{myNotice.title}</Text>
+              <Text style={styles.noticeText}>{myNotice.text}</Text>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 function InfoRow({
   label,
   value,
+  last = false,
 }: {
   label: string;
   value: string;
+  last?: boolean;
 }) {
   return (
-    <View style={styles.infoRow}>
+    <View style={[styles.infoRow, last && styles.noBorder]}>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value}</Text>
     </View>
@@ -410,169 +448,266 @@ function InfoRow({
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.bg,
   },
   content: {
-    padding: 16,
-    paddingBottom: 35,
+    paddingBottom: 40,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.bg,
     padding: 25,
   },
   loadingText: {
     marginTop: 12,
-    color: '#64748B',
+    color: COLORS.slate,
   },
   errorText: {
-    color: '#DC2626',
+    color: COLORS.red,
     textAlign: 'center',
     fontSize: 14,
   },
   retryText: {
-    color: '#2563EB',
+    color: COLORS.blue,
     fontWeight: '700',
     marginTop: 15,
   },
   backText: {
-    color: '#64748B',
+    color: COLORS.slate,
     marginTop: 20,
   },
-  header: {
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 23,
-    fontWeight: '700',
-    color: '#172554',
-  },
-  reference: {
-    color: '#64748B',
-    fontSize: 12,
-    marginTop: 7,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginTop: 12,
-  },
-  statusText: {
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 15,
-  },
-  infoRow: {
-    paddingVertical: 10,
+
+  /* Nav */
+  navBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: COLORS.border,
   },
-  infoLabel: {
+  backButton: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.ink,
+  },
+
+  /* Hero */
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.hero,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    gap: 16,
+  },
+  heroIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    backgroundColor: COLORS.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroTexts: {
+    flex: 1,
+  },
+  heroSubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
-    marginBottom: 5,
-    textTransform: 'capitalize',
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#334155',
+    color: '#3F4A1A',
     fontWeight: '500',
   },
-  progressNumbers: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 18,
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: COLORS.ink,
+    marginTop: 2,
   },
-  progressItem: {
-    alignItems: 'center',
+  heroBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginTop: 8,
   },
-  progressValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  progressLabel: {
+  heroBadgeText: {
     fontSize: 11,
-    color: '#64748B',
+    fontWeight: '700',
+  },
+
+  /* Body */
+  body: {
+    padding: 16,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.slate,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.ink,
     marginTop: 4,
+    marginBottom: 14,
   },
-  progressBackground: {
-    height: 8,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 10,
-    overflow: 'hidden',
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginTop: 22,
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#16A34A',
-    borderRadius: 10,
+  countBadge: {
+    minWidth: 28,
+    height: 24,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: COLORS.hero,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
-  progressDescription: {
-    color: '#64748B',
+  countBadgeText: {
     fontSize: 12,
-    marginTop: 9,
+    fontWeight: '700',
+    color: COLORS.ink,
   },
-  emptyText: {
-    color: '#94A3B8',
-    fontSize: 13,
+
+  /* Cartes */
+  card: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  validatorRow: {
+  infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
-    gap: 10,
+    gap: 12,
+  },
+  noBorder: {
+    borderBottomWidth: 0,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: COLORS.muted,
+  },
+  infoValue: {
+    flex: 1,
+    textAlign: 'right',
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  footnote: {
+    fontSize: 11,
+    color: COLORS.muted,
+    marginTop: 10,
+    marginLeft: 4,
+  },
+
+  /* Validateurs */
+  validatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    gap: 12,
+  },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   validatorInfo: {
     flex: 1,
   },
-  validatorPhone: {
+  validatorName: {
     fontSize: 14,
-    color: '#334155',
-    fontWeight: '600',
+    fontWeight: '700',
+    color: COLORS.ink,
   },
   validatorDate: {
     fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 5,
+    color: COLORS.muted,
+    marginTop: 3,
   },
   rejectionReason: {
-    fontSize: 12,
-    color: '#DC2626',
-    marginTop: 5,
+    fontSize: 11,
+    color: COLORS.red,
+    marginTop: 3,
   },
-  validatorStatus: {
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  pillText: {
     fontSize: 11,
     fontWeight: '700',
   },
-  responseNotice: {
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 12,
+
+  /* Notice personnelle */
+  noticeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 16,
+    marginTop: 18,
   },
-  responseNoticeText: {
+  noticeIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noticeTexts: {
+    flex: 1,
+  },
+  noticeTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  noticeText: {
     fontSize: 12,
-    lineHeight: 18,
+    color: COLORS.slate,
+    marginTop: 2,
   },
 });
+// router

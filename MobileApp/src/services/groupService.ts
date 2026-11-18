@@ -1,4 +1,13 @@
 import api from './api';
+export type GroupOperation = {
+  reference: string;
+  operation_type: string;
+  status: string;
+  initiator_phone_number: string;
+  created_at: string;
+  expires_at: string | null;
+  completed_at: string | null;
+};
 
 export const getMyGroups = async () => {
   const response = await api.get('groups/my-groups/');
@@ -85,5 +94,25 @@ export const requestDeleteGroup = async (group_id: number) => {
 
 export const getMyInitiatedOperations = async () => {
   const response = await api.get('operations/initiated/');
+  return response.data;
+};
+
+export const getGroupOperations = async (
+  groupId: number
+): Promise<{ results: GroupOperation[] }> => {
+  const response = await api.get(
+    `groups/${groupId}/operationsHistory/`
+  );
+
+  return response.data;
+};
+
+export const getOperationHistoryDetail = async (
+  reference: string
+): Promise<any> => {
+  const response = await api.get(
+    `operations/history/${encodeURIComponent(reference)}/`
+  );
+
   return response.data;
 };
