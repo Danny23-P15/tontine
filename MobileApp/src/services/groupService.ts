@@ -98,10 +98,16 @@ export const getMyInitiatedOperations = async () => {
 };
 
 export const getGroupOperations = async (
-  groupId: number
+  groupId: number,
+  search: string = ""
 ): Promise<{ results: GroupOperation[] }> => {
   const response = await api.get(
-    `groups/${groupId}/operationsHistory/`
+    `groups/${groupId}/operationsHistory/`,
+    {
+      params: {
+        search: search || undefined,
+      },
+    }
   );
 
   return response.data;

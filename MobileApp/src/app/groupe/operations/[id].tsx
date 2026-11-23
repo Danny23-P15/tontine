@@ -8,6 +8,7 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -39,7 +40,7 @@ export default function GroupOperationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-
+  const [search, setSearch] = useState("");
   const loadOperations = useCallback(async () => {
     if (!id) {
       setError('Identifiant du groupe introuvable.');
@@ -50,7 +51,7 @@ export default function GroupOperationsScreen() {
 
     try {
       setError('');
-      const response = await getGroupOperations(Number(id));
+      const response = await getGroupOperations(Number(id), search);
       setOperations(response.results);
     } catch (err: any) {
       console.error(
@@ -62,7 +63,7 @@ export default function GroupOperationsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id]);
+  }, [id, search]);
 
   useEffect(() => {
     loadOperations();
@@ -95,6 +96,7 @@ export default function GroupOperationsScreen() {
             : '#6b7280';
 
     return (
+      
       <Pressable
         style={styles.operationCard}
         onPress={() =>
@@ -159,6 +161,12 @@ export default function GroupOperationsScreen() {
         <Text style={styles.topBarTitle}>Historique des opérations</Text>
         <View style={styles.topBarSpacer} />
       </View>
+
+      <TextInput
+        placeholder="Rechercher une référence..."
+        value={search}
+        onChangeText={setSearch}
+      />
 
       <FlatList
         data={operations}

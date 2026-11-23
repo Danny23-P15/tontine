@@ -787,44 +787,70 @@ class ValidatorSuggestionsAPIView(APIView):
                 break
 
         return Response({"results": results})
-# view pour voir l'historique des opérations d'un groupe
+
+    
 class GroupOperationsAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, group_id):
-        # 1. Vérifier que le groupe existe
-        group = get_object_or_404(ValidationGroup, id=group_id)
+        phone_number = request.user.phone_number
 
-        # 2. Vérifier que l'utilisateur est membre du groupe
+        group = get_object_or_404(
+            ValidationGroup,
+            id=group_id
+        )
+
+        # Vérifier les autorisations
+        is_initiator = (
+            group.initiator_phone_number == phone_number
+        )
+
         is_member = GroupMembership.objects.filter(
             group=group,
-            phone_number=request.user.phone_number,
+            phone_number=phone_number,
             left_at__isnull=True
         ).exists()
 
-        if not is_member:
+        if not (is_initiator or is_member):
             return Response(
-                {"detail": "Vous n'êtes pas membre de ce groupe."},
+                {"detail": "Vous n'êtes pas autorisé à consulter cet historique."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # 3. Récupérer les opérations du groupe
-        operations = Operation.objects.filter(group=group).order_by("-created_at")
+        # Récupérer les opérations du groupe
+        operations = Operation.objects.filter(
+            group=group
+        )
 
-        # 4. Préparer les données pour le frontend
-        data = []
-        for op in operations:
-            data.append({
-                "reference": op.reference,
-                "operation_type": op.operation_type,
-                "status": op.status,
-                "initiator_phone_number": op.initiator_phone_number,
-                "created_at": op.created_at,
-                "expires_at": op.expires_at,
-                "completed_at": op.completed_at,
-            })
+        # Récupérer le texte de recherche
+        search = request.query_params.get("search", "").strip()
 
-        return Response({"results": data}, status=status.HTTP_200_OK)
+        # Filtrer par référence si une recherche est effectuée
+        if search:
+            operations = operations.filter(
+                reference__icontains=search
+            )
+
+        operations = operations.order_by("-created_at")
+
+        # Préparer les données
+        data = [
+            {
+                "reference": operation.reference,
+                "operation_type": operation.operation_type,
+                "status": operation.status,
+                "initiator_phone_number": operation.initiator_phone_number,
+                "created_at": operation.created_at,
+                "expires_at": operation.expires_at,
+                "completed_at": operation.completed_at,
+            }
+            for operation in operations
+        ]
+
+        return Response(
+            {"results": data},
+            status=status.HTTP_200_OK
+        )
 
 class OperationDetailAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -840,13 +866,14 @@ class OperationDetailAPIView(APIView):
             reference=reference
         )
 
-        # 2. Vérifier que l'utilisateur est un validateur
-        # désigné pour cette opération
+        # 2. Autoriser le validateur désigné ou l'initiateur de l'opération
         user_validation = operation.validations.filter(
             validator_phone_number=phone_number
         ).first()
 
-        if not user_validation:
+        is_initiator = operation.initiator_phone_number == phone_number
+
+        if not user_validation and not is_initiator:
             return Response(
                 {"detail": "Vous n'êtes pas autorisé à consulter cette demande."},
                 status=status.HTTP_403_FORBIDDEN
@@ -867,7 +894,8 @@ class OperationDetailAPIView(APIView):
         is_expired = operation.expires_at <= timezone.now()
 
         can_respond = (
-            operation.status == OperationStatus.PENDING
+            user_validation is not None
+            and operation.status == OperationStatus.PENDING
             and user_validation.status == ValidationStatus.PENDING
             and not is_expired
         )
@@ -910,7 +938,9 @@ class OperationDetailAPIView(APIView):
             "total_validators": validations.count(),
 
             "can_respond": can_respond,
-            "my_validation_status": user_validation.status,
+            "my_validation_status": (
+                user_validation.status if user_validation else None
+            ),
         }
 
         return Response(data, status=status.HTTP_200_OK)
