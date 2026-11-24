@@ -2,6 +2,7 @@ from django.utils import timezone
 from notifications.services.operation_notifications import notify_operation_status
 from notifications.constants import OperationEvent
 from django.db import transaction
+from groups.services.receipt_service import generate_receipt
 
 
 from groups.models import (
@@ -12,7 +13,8 @@ from groups.models import (
     GroupMembership,
     GroupRole,
     OperationType,
-    Account
+    Account,
+    Transaction,
 )
 
 def respond_to_operation_validation(
@@ -483,164 +485,157 @@ def execute_group_deletion(operation: Operation) -> None:
     )
 
 
-def execute_transaction(operation: Operation):
-
-    tx = operation.transaction
-
+def execute_transaction(operation: Operation) -> bool:
+    """
+    Exécute le transfert. Retourne True UNIQUEMENT si l'argent a réellement
+    bougé (c'est ce booléen, et tx.executed_at, qui font foi pour le justificatif).
+    Idempotent : un second appel sur la même opération ne fait rien.
+    """
     with transaction.atomic():
+        # Verrou ligne : les exécutions concurrentes passent une par une
+        Operation.objects.select_for_update().get(pk=operation.pk)
+        operation.refresh_from_db()
+        tx = Transaction.objects.select_for_update().get(operation=operation)
 
-        # Récupérer le compte du groupe (débit)
+        # Déjà exécutée ou opération clôturée : on ne refait rien
+        if tx.executed_at is not None or operation.status in (
+            OperationStatus.COMPLETED,
+            OperationStatus.REJECTED,
+            OperationStatus.CANCELLED,
+            OperationStatus.EXPIRED,
+        ):
+            return False
+
+        def reject() -> bool:
+            operation.status = OperationStatus.REJECTED
+            operation.resolved_at = timezone.now()
+            operation.save(update_fields=["status", "resolved_at"])
+            notify_operation_status(
+                source=operation,
+                event=OperationEvent.TRANSACTION_REJECTED,
+            )
+            return False
+
         try:
-            group_account = Account.objects.get(
+            group_account = Account.objects.select_for_update().get(
                 owner_type="GROUP",
                 owner_group=operation.group,
-                is_active=True
+                is_active=True,
             )
         except Account.DoesNotExist:
-            # Marquer l'opération comme rejetée si pas de compte
-            operation.status = OperationStatus.REJECTED
-            operation.resolved_at = timezone.now()
-            operation.save(update_fields=["status", "resolved_at"])
-            notify_operation_status(
-                source=operation,
-                event=OperationEvent.TRANSACTION_REJECTED
-            )
-            return
+            return reject()
 
-        # Vérifier le solde une dernière fois
         if group_account.balance < tx.amount:
-            operation.status = OperationStatus.REJECTED
-            operation.resolved_at = timezone.now()
-            operation.save(update_fields=["status", "resolved_at"])
-            notify_operation_status(
-                source=operation,
-                event=OperationEvent.TRANSACTION_REJECTED
-            )
-            return
+            return reject()
 
-        # Récupérer ou créer le compte du destinataire (crédit)
-        recipient_account, created = Account.objects.get_or_create(
+        recipient_account, _ = Account.objects.get_or_create(
             owner_type="USER",
             owner_phone_number=tx.recipient_phone_number,
-            defaults={"balance": 0, "is_active": True}
+            defaults={"balance": 0, "is_active": True},
         )
+        recipient_account = Account.objects.select_for_update().get(pk=recipient_account.pk)
 
-        # Effectuer le transfert
         group_account.balance -= tx.amount
         recipient_account.balance += tx.amount
-
-        # Sauvegarder les comptes
         group_account.save(update_fields=["balance"])
         recipient_account.save(update_fields=["balance"])
 
-        # Mettre à jour la transaction
         tx.debited_account = group_account
         tx.credited_account = recipient_account
         tx.executed_at = timezone.now()
         tx.save(update_fields=["debited_account", "credited_account", "executed_at"])
 
-        # Marquer l'opération comme complétée
         operation.status = OperationStatus.COMPLETED
         operation.completed_at = timezone.now()
         operation.save(update_fields=["status", "completed_at"])
 
         notify_operation_status(
             source=operation,
-            event=OperationEvent.TRANSACTION_EXECUTED
+            event=OperationEvent.TRANSACTION_EXECUTED,
         )
 
+        tx_id = tx.pk
+        transaction.on_commit(lambda: generate_receipt(tx_id))
+        return True
 
 def respond_to_transaction_request(
     *,
     operation: Operation,
     validator_phone: str,
     accept: bool,
-    rejection_reason: str | None = None
+    rejection_reason: str | None = None,
 ):
-    """
-    Traite la réponse d'un validateur à une demande de transaction.
-    La transaction n'est rejetée que si le quorum n'est plus atteignable.
-    Quorum atteint = exécution de la transaction.
-    """
+    with transaction.atomic():
+        # Verrou : deux validateurs simultanés sont traités l'un après l'autre
+        Operation.objects.select_for_update().get(pk=operation.pk)
+        operation.refresh_from_db()
 
-    try:
-        ov = OperationValidation.objects.get(
-            operation=operation,
-            validator_phone_number=validator_phone
-        )
-    except OperationValidation.DoesNotExist:
-        return False, "Vous n'êtes pas autorisé à répondre"
+        if operation.operation_type != OperationType.TRANSACTION:
+            return False, "Opération invalide"
 
-    if ov.status != ValidationStatus.PENDING:
-        return False, "Vous avez déjà répondu"
+        if operation.status != OperationStatus.PENDING:
+            return False, "Cette opération n'est plus active"
 
-    ov.status = (
-        ValidationStatus.ACCEPTED
-        if accept
-        else ValidationStatus.REJECTED
-    )
-    ov.rejection_reason = rejection_reason if not accept else None
-    ov.validated_at = timezone.now()
-    ov.save()
+        if operation.check_and_expire():
+            return False, "Cette demande a expiré"
 
-    group = operation.group
-    total = operation.validations.count()
-    accepted = operation.validations.filter(
-        status=ValidationStatus.ACCEPTED
-    ).count()
-    rejected = operation.validations.filter(
-        status=ValidationStatus.REJECTED
-    ).count()
+        try:
+            ov = OperationValidation.objects.get(
+                operation=operation,
+                validator_phone_number=validator_phone,
+            )
+        except OperationValidation.DoesNotExist:
+            return False, "Vous n'êtes pas autorisé à répondre"
 
-    # ❌ Vérifier si le quorum est encore atteignable
-    # Si le nombre de validateurs restants (total - répondu) + accepted est < quorum
-    remaining = total - (accepted + rejected)
-    max_possible_accept = accepted + remaining
+        if ov.status != ValidationStatus.PENDING:
+            return False, "Vous avez déjà répondu"
 
-    if max_possible_accept < group.quorum:
-        # Quorum impossible à atteindre → rejet
-        operation.status = OperationStatus.REJECTED
-        operation.resolved_at = timezone.now()
-        operation.save(update_fields=["status", "resolved_at"])
+        ov.status = ValidationStatus.ACCEPTED if accept else ValidationStatus.REJECTED
+        ov.rejection_reason = rejection_reason if not accept else None
+        ov.validated_at = timezone.now()
+        ov.save()
+
+        group = operation.group
+        total = operation.validations.count()
+        accepted = operation.validations.filter(status=ValidationStatus.ACCEPTED).count()
+        rejected = operation.validations.filter(status=ValidationStatus.REJECTED).count()
+
+        remaining = total - (accepted + rejected)
+        if accepted + remaining < group.quorum:
+            operation.status = OperationStatus.REJECTED
+            operation.resolved_at = timezone.now()
+            operation.save(update_fields=["status", "resolved_at"])
+            notify_operation_status(
+                source=operation,
+                event=OperationEvent.TRANSACTION_REJECTED,
+                actor_phone=validator_phone,
+            )
+            return True, "Transaction rejetée (quorum impossible)"
+
+        if accepted >= group.quorum:
+            if execute_transaction(operation):
+                return True, "Transaction approuvée et exécutée"
+            return True, (
+                "Quorum atteint, mais la transaction n'a pas pu être exécutée "
+                "(le solde du groupe a changé depuis la demande)."
+            )
 
         notify_operation_status(
             source=operation,
-            event=OperationEvent.TRANSACTION_REJECTED,
-            actor_phone=validator_phone
+            event=OperationEvent.VALIDATION_RECORDED,
+            actor_phone=validator_phone,
         )
+        return True, "Validation enregistrée"
 
-        return True, "Transaction rejetée (quorum impossible)"
-
-    # Vérification du quorum atteint
-    if accepted >= group.quorum:
-        # ✅ Quorum atteint → exécution de la transaction
-        execute_transaction(operation)
-
-        return True, "Transaction approuvée et exécutée"
-
-    # ⏳ Quorum pas encore atteint mais possible
-    notify_operation_status(
-        source=operation,
-        event=OperationEvent.VALIDATION_RECORDED,
-        actor_phone=validator_phone
-    )
-    
-    return True, "Validation enregistrée"
-
-
-def execute_operation(operation: Operation):
+def execute_operation(operation: Operation) -> bool:
     if operation.operation_type == OperationType.ADD_VALIDATOR:
         execute_add_validator(operation)
-
     elif operation.operation_type == OperationType.REMOVE_VALIDATOR:
         execute_remove_validator(operation)
-
     elif operation.operation_type == OperationType.DELETE_GROUP:
-        
         execute_group_deletion(operation)
-
     elif operation.operation_type == OperationType.TRANSACTION:
-        
-        execute_transaction(operation)
+        return execute_transaction(operation)
+    return True
 
     

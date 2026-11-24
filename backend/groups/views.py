@@ -4,6 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from decimal import Decimal
+from django.http import FileResponse
+from groups.services.receipt_service import generate_receipt
 
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
@@ -937,6 +939,14 @@ class OperationDetailAPIView(APIView):
             "pending_count": pending_count,
             "total_validators": validations.count(),
 
+            "receipt_available": (
+                operation.operation_type == OperationType.TRANSACTION
+                and operation.status == OperationStatus.COMPLETED
+                and Transaction.objects.filter(
+                    operation=operation, executed_at__isnull=False
+                ).exists()
+            ),
+
             "can_respond": can_respond,
             "my_validation_status": (
                 user_validation.status if user_validation else None
@@ -1020,4 +1030,69 @@ class OperationHistoryDetailAPIView(APIView):
         }
 
         return Response(data, status=status.HTTP_200_OK)
-    
+
+
+class OperationReceiptAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, reference):
+        phone = request.user.phone_number
+
+        operation = get_object_or_404(
+            Operation.objects.select_related("group"),
+            reference=reference,
+        )
+
+        if operation.operation_type != OperationType.TRANSACTION:
+            return Response(
+                {"detail": "Aucun justificatif pour ce type d'opération."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Droits : initiateur, membre actif, ou validateur désigné sur l'opération
+        is_initiator = operation.initiator_phone_number == phone
+        is_member = GroupMembership.objects.filter(
+            group=operation.group, phone_number=phone, left_at__isnull=True
+        ).exists()
+        is_validator = operation.validations.filter(
+            validator_phone_number=phone
+        ).exists()
+
+        if not (is_initiator or is_member or is_validator):
+            return Response(
+                {"detail": "Vous n'êtes pas autorisé à consulter ce justificatif."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        tx = get_object_or_404(Transaction, operation=operation)
+
+        # Un justificatif n'existe que si l'argent a réellement bougé
+        executed = (
+            operation.status == OperationStatus.COMPLETED
+            and tx.executed_at is not None
+            and tx.debited_account_id is not None
+            and tx.credited_account_id is not None
+        )
+        if not executed:
+            return Response(
+                {"detail": "Cette transaction n'a pas été exécutée."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        # Transactions exécutées avant l'existence des justificatifs
+        if not tx.receipt_pdf:
+            tx = generate_receipt(tx.pk)
+            if tx is None:
+                return Response(
+                    {"detail": "Impossible de générer le justificatif pour le moment."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+
+        return FileResponse(
+            tx.receipt_pdf.open("rb"),
+            content_type="application/pdf",
+            as_attachment=True,
+            filename=f"justificatif-{tx.reference}.pdf",
+        )
+
+

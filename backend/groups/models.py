@@ -364,6 +364,15 @@ class Transaction(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+        # Justificatif PDF (instantané figé, généré après l'exécution)
+    receipt_pdf = models.FileField(
+        upload_to="receipts/%Y/%m/",
+        null=True,
+        blank=True,
+    )
+    receipt_generated_at = models.DateTimeField(null=True, blank=True)
+    receipt_sha256 = models.CharField(max_length=64, null=True, blank=True)
+
     debited_account = models.ForeignKey(
         Account,
         on_delete=models.PROTECT,
@@ -378,6 +387,10 @@ class Transaction(models.Model):
         null=True,
         blank=True
     )
+
+    @property
+    def has_receipt(self) -> bool:
+        return bool(self.receipt_pdf) and self.executed_at is not None
 
 
 class TemporaryAddValidator(models.Model):

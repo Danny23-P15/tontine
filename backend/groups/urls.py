@@ -15,8 +15,10 @@ urlpatterns = [
     path("operations/respond/", RespondOperationAPIView.as_view()),
     path("operations/initiated/", MyInitiatedOperationsAPIView.as_view()),
     path("operations/cancel/", CancelOperationAPIView.as_view()),
+    path("operations/history/<str:reference>/",OperationHistoryDetailAPIView.as_view(),name="operation-history-detail"),
 
     path("operations/<str:reference>/", OperationDetailAPIView.as_view(), name="operation-detail"),
+    path("operations/<str:reference>/receipt/", OperationReceiptAPIView.as_view(), name="operation-receipt"),
     path("groups/<int:group_id>/remove-validator/",RemoveValidatorAPIView.as_view(),name="remove-validator"),
     path("groups/<int:group_id>/operationsHistory/",GroupOperationsAPIView.as_view()),
     path("groups/delete/request/",RequestDeleteGroupAPIView.as_view()),
@@ -24,7 +26,7 @@ urlpatterns = [
     path("groups/<int:group_id>/balance/", GroupBalanceAPIView.as_view(), name="group-balance"),
     path("groups/<int:group_id>/transactions/history/",GroupTransactionsAPIView.as_view()),
     path("groups/<int:group_id>/transactions/stats/", GroupTransactionsStatsAPIView.as_view()),
-    path("operations/history/<str:reference>/",OperationHistoryDetailAPIView.as_view(),name="operation-history-detail"),
+
     # path("groups/<int:group_id>/transactions/<int:transaction_id>/", TransactionDetailAPIView.as_view()),
     path("groups/can-create/", CanCreateGroupAPIView.as_view(), name="can-create-group"),
     path("groups/validator-suggestions/", ValidatorSuggestionsAPIView.as_view(), name="validator-suggestions"),

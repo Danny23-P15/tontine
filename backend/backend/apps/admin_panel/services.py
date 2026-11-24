@@ -12,9 +12,9 @@ def override_operation(*, operation: Operation, admin_user, decision):
     
     try:
         if decision == "accept":
-            # Exécuter les actions métier pour l'opération
-            execute_operation(operation)
-            operation.status = OperationStatus.COMPLETED
+            if not execute_operation(operation):
+                return False, "Exécution impossible (opération déjà traitée ou solde modifié depuis la demande)."
+            operation.refresh_from_db()  # l'exécution a déjà posé COMPLETED
         elif decision == "refuse":
             operation.status = OperationStatus.REJECTED
         else:
@@ -93,10 +93,8 @@ def substitute_validator_response(
         # Si le quorum est atteint, exécuter l'opération
         if accepted_count >= quorum:
             try:
-                execute_operation(operation)
-                operation.status = OperationStatus.COMPLETED
-                operation.completed_at = timezone.now()
-                operation.save()
+                if not execute_operation(operation):
+                    return False, "Quorum atteint, mais l'opération n'a pas pu être exécutée (déjà traitée, clôturée ou solde modifié entre-temps)."
                 return True, "Validator response substituted successfully. Operation executed."
             except Exception as e:
                 return False, f"Error executing operation: {str(e)}"
