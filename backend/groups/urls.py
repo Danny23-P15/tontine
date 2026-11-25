@@ -26,6 +26,8 @@ urlpatterns = [
     path("groups/<int:group_id>/balance/", GroupBalanceAPIView.as_view(), name="group-balance"),
     path("groups/<int:group_id>/transactions/history/",GroupTransactionsAPIView.as_view()),
     path("groups/<int:group_id>/transactions/stats/", GroupTransactionsStatsAPIView.as_view()),
+    path(
+    "groups/<int:group_id>/statistics/",GroupStatisticsAPIView.as_view(),name="group-statistics"),
 
     # path("groups/<int:group_id>/transactions/<int:transaction_id>/", TransactionDetailAPIView.as_view()),
     path("groups/can-create/", CanCreateGroupAPIView.as_view(), name="can-create-group"),

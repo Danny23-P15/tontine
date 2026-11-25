@@ -1,3 +1,5 @@
+import calendar
+
 from urllib import request
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -10,6 +12,14 @@ from groups.services.receipt_service import generate_receipt
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.db.models import Q
+
+from datetime import datetime, time, timedelta
+
+from django.db.models import Sum
+from django.db.models.functions import TruncHour, TruncDay
+from django.utils import timezone
+
 
 from core.models import User
 from groups.models import (
@@ -1031,6 +1041,220 @@ class OperationHistoryDetailAPIView(APIView):
 
         return Response(data, status=status.HTTP_200_OK)
 
+class GroupStatisticsAPIView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, group_id):
+
+        phone = request.user.phone_number
+
+        # 1. Récupérer le groupe
+        group = get_object_or_404(
+            ValidationGroup,
+            id=group_id
+        )
+
+        # 2. Vérifier les droits d'accès
+        is_initiator = (
+            group.initiator_phone_number == phone
+        )
+
+        is_member = GroupMembership.objects.filter(
+            group=group,
+            phone_number=phone,
+            is_active=True,
+            left_at__isnull=True
+        ).exists()
+
+        if not (is_initiator or is_member):
+            return Response(
+                {"detail": "Vous n'avez pas accès aux statistiques de ce groupe."},
+                status=403
+            )
+
+        # 3. Récupérer les transactions du groupe
+        transactions = Transaction.objects.filter(
+            operation__group=group,
+            operation__operation_type=OperationType.TRANSACTION
+        )
+
+        # 4. Transactions réussies
+        successful = transactions.filter(
+            operation__status=OperationStatus.COMPLETED,
+            executed_at__isnull=False
+        ).count()
+
+        # 5. Transactions échouées
+        failed = transactions.filter(
+            operation__status=OperationStatus.REJECTED
+        ).count()
+
+        # 6. Calcul du taux de réussite
+        total_resolved = successful + failed
+
+        success_rate = (
+            (successful / total_resolved) * 100
+            if total_resolved > 0
+            else 0
+        )
+
+        
+        # 7. Déterminer la période demandée
+        period = request.query_params.get("period", "day")
+
+        if period not in ["day", "week", "month"]:
+            return Response(
+                {"detail": "Période invalide. Utilisez day, week ou month."},
+                status=400
+            )
+
+        now = timezone.localtime(timezone.now())
+        today = now.date()
+        current_tz = timezone.get_current_timezone()
+
+        # 8. Déterminer les dates de début et de fin
+        if period == "day":
+            start_date = today
+            end_date = today + timedelta(days=1)
+
+        elif period == "week":
+            start_date = today - timedelta(days=today.weekday())
+            end_date = start_date + timedelta(days=7)
+
+        else:
+            start_date = today.replace(day=1)
+
+            if today.month == 12:
+                end_date = today.replace(
+                    year=today.year + 1,
+                    month=1,
+                    day=1
+                )
+            else:
+                end_date = today.replace(
+                    month=today.month + 1,
+                    day=1
+                )
+
+        start_datetime = timezone.make_aware(
+            datetime.combine(start_date, time.min),
+            current_tz
+        )
+
+        end_datetime = timezone.make_aware(
+            datetime.combine(end_date, time.min),
+            current_tz
+        )
+
+        # 9. Récupérer uniquement les transactions exécutées
+        period_transactions = transactions.filter(
+            operation__status=OperationStatus.COMPLETED,
+            executed_at__isnull=False,
+            executed_at__gte=start_datetime,
+            executed_at__lt=end_datetime
+        )
+
+        # 10. Regrouper les montants
+        if period == "day":
+            grouped = (
+                period_transactions
+                .annotate(bucket=TruncHour(
+                    "executed_at",
+                    tzinfo=current_tz
+                ))
+                .values("bucket")
+                .annotate(total=Sum("amount"))
+                .order_by("bucket")
+            )
+
+            amounts = {
+                timezone.localtime(item["bucket"]).hour:
+                    item["total"]
+                for item in grouped
+            }
+
+            chart_data = [
+                {
+                    "label": f"{hour:02d}:00",
+                    "total": str(amounts.get(hour, 0))
+                }
+                for hour in range(24)
+            ]
+
+        else:
+            grouped = (
+                period_transactions
+                .annotate(bucket=TruncDay(
+                    "executed_at",
+                    tzinfo=current_tz
+                ))
+                .values("bucket")
+                .annotate(total=Sum("amount"))
+                .order_by("bucket")
+            )
+
+            amounts = {
+                timezone.localtime(item["bucket"]).date():
+                    item["total"]
+                for item in grouped
+            }
+
+            if period == "week":
+                day_names = [
+                    "Lundi", "Mardi", "Mercredi",
+                    "Jeudi", "Vendredi", "Samedi", "Dimanche"
+                ]
+
+                dates = [
+                    start_date + timedelta(days=i)
+                    for i in range(7)
+                ]
+
+                chart_data = [
+                    {
+                        "label": day_names[i],
+                        "date": str(date),
+                        "total": str(amounts.get(date, 0))
+                    }
+                    for i, date in enumerate(dates)
+                ]
+
+            else:
+                number_of_days = calendar.monthrange(
+                    today.year,
+                    today.month
+                )[1]
+
+                dates = [
+                    start_date + timedelta(days=i)
+                    for i in range(number_of_days)
+                ]
+
+                chart_data = [
+                    {
+                        "label": date.strftime("%d"),
+                        "date": str(date),
+                        "total": str(amounts.get(date, 0))
+                    }
+                    for date in dates
+                ]
+
+
+        # . Réponse API
+        return Response({
+            "group_id": group.id,
+            "group_name": group.group_name,
+            "total_transactions": successful,
+            "successful_transactions": successful,
+            "failed_transactions": failed,
+            "success_rate": round(success_rate, 2),
+            "chart": {
+                "period": period,
+                "unit": "amount",
+                "data": chart_data
+            }
+        })
 
 class OperationReceiptAPIView(APIView):
     permission_classes = [IsAuthenticated]
