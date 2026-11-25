@@ -77,9 +77,20 @@ export default function GroupesScreen() {
     }
   };
 
-  useEffect(() => {
-    loadGroups();
-  }, []);
+useEffect(() => {
+  let isMounted = true;
+
+  const fetchGroups = async () => {
+    if (!isMounted) return;
+    await loadGroups();
+  };
+
+  void fetchGroups();
+
+  return () => {
+    isMounted = false;
+  };
+}, []);
 
   const refreshGroups = () => {
     setRefreshing(true);

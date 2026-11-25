@@ -103,9 +103,20 @@ export default function InboxScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+useEffect(() => {
+  let isMounted = true;
+
+  const fetchNotifications = async () => {
+    if (!isMounted) return;
+    await loadNotifications();
+  };
+
+  void fetchNotifications();
+
+  return () => {
+    isMounted = false;
+  };
+}, [loadNotifications]);
 
   const renderNotification = ({
     item,

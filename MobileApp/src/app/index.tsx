@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function HomeScreen() {
 
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   
   return (
     <View style={styles.container}>

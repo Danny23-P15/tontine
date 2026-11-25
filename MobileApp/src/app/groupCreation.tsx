@@ -36,46 +36,49 @@ export default function CreerGroupeScreen() {
   const [validatorInput, setValidatorInput] = useState('');
   const [suggestions, setSuggestions] = useState<ValidatorSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Le quorum ne peut pas dépasser le nombre de validateurs
-  useEffect(() => {
-    setQuorum((q) => Math.min(q, Math.max(1, validators.length)));
-  }, [validators.length]);
 
   // Recherche de validateurs (debounce 300 ms)
   useEffect(() => {
     const query = validatorInput.trim();
-    if (query.length < 3 || loading) {
-      setSuggestions([]);
-      setSearching(false);
-      return;
-    }
+    const isInvalid = query.length < 3 || loading;
+    let isActive = true;
 
-    let cancelled = false;
-    const timeout = setTimeout(async () => {
+    const timer = setTimeout(async () => {
+      if (isInvalid) {
+        setSuggestions([]);
+        setSearchError('');
+        setSearching(false);
+        return;
+      }
+
       setSearching(true);
+      setSearchError('');
+
       try {
         const results = await searchValidators(query);
-        if (!cancelled) {
-          const taken = validators.map((v) => v.phone_number);
-          setSuggestions(results.filter((u) => !taken.includes(u.phone_number)));
+        if (isActive) {
+          setSuggestions(results);
         }
       } catch (error) {
-        if (!cancelled) {
-          console.error('Erreur de recherche des validateurs :', error);
+        console.error('Erreur de recherche des validateurs :', error);
+        if (isActive) {
           setSuggestions([]);
+          setSearchError('Impossible de rechercher des utilisateurs. Réessaie.');
         }
       } finally {
-        if (!cancelled) setSearching(false);
+        if (isActive) {
+          setSearching(false);
+        }
       }
-    }, 300);
+    }, isInvalid ? 0 : 300);
 
     return () => {
-      cancelled = true;
-      clearTimeout(timeout);
+      isActive = false;
+      clearTimeout(timer);
     };
-  }, [validatorInput, validators, loading]);
+  }, [validatorInput, loading]);
 
   const close = () => router.back();
 
@@ -101,10 +104,14 @@ export default function CreerGroupeScreen() {
   };
 
   const removeValidator = (phone: string) => {
-    setValidators((current) => current.filter((v) => v.phone_number !== phone));
+    const remaining = validators.filter((v) => v.phone_number !== phone);
+    setValidators(remaining);
+    setQuorum((current) => Math.min(current, Math.max(1, remaining.length)));
   };
 
   const canSubmit = groupName.trim().length > 0 && validators.length > 0 && !loading;
+  const maxQuorum = Math.max(1, validators.length);
+  const effectiveQuorum = Math.min(quorum, maxQuorum);
 
   const handleSubmit = async () => {
     const trimmedName = groupName.trim();
@@ -121,7 +128,7 @@ export default function CreerGroupeScreen() {
       Alert.alert('Validateurs manquants', 'Ajoute au moins un validateur.');
       return;
     }
-    if (quorum > validators.length) {
+    if (effectiveQuorum > validators.length) {
       Alert.alert('Quorum invalide', 'Le quorum ne peut pas dépasser le nombre de validateurs.');
       return;
     }
@@ -130,7 +137,7 @@ export default function CreerGroupeScreen() {
     try {
       const result = await createGroupRequest({
         group_name: trimmedName,
-        quorum,
+        quorum: effectiveQuorum,
         validators: validators.map(({ phone_number }) => ({ phone_number })),
       });
 
@@ -151,8 +158,6 @@ export default function CreerGroupeScreen() {
       setLoading(false);
     }
   };
-
-  const maxQuorum = Math.max(1, validators.length);
 
   return (
     <View style={styles.root}>
@@ -221,14 +226,14 @@ export default function CreerGroupeScreen() {
             <View style={styles.quorumHeader}>
               <Text style={styles.label}>Quorum</Text>
               <Text style={styles.quorumValue}>
-                {quorum} validation{quorum > 1 ? 's' : ''} requise{quorum > 1 ? 's' : ''}
+                {effectiveQuorum} validation{effectiveQuorum > 1 ? 's' : ''} requise{effectiveQuorum > 1 ? 's' : ''}
               </Text>
             </View>
             <Slider
               minimumValue={1}
               maximumValue={maxQuorum}
               step={1}
-              value={quorum}
+              value={effectiveQuorum}
               onValueChange={setQuorum}
               disabled={validators.length <= 1 || loading}
               minimumTrackTintColor={LIME}
@@ -286,6 +291,8 @@ export default function CreerGroupeScreen() {
                       <Text style={styles.suggestionPhone}>{user.phone_number}</Text>
                     </Pressable>
                   ))
+                ) : searchError ? (
+                  <Text style={styles.noSuggestions}>{searchError}</Text>
                 ) : (
                   <Text style={styles.noSuggestions}>Aucun utilisateur trouvé.</Text>
                 )}

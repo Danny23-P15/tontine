@@ -260,30 +260,42 @@ export default function GroupDetailScreen() {
     );
   };
 
-  useEffect(() => {
+useEffect(() => {
+    let active = true;
+
     const loadGroup = async () => {
+      if (!id) {
+        if (!active) return;
+        setError('Identifiant du groupe introuvable.');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError('');
 
         const data = await getGroupDetail(Number(id));
+        if (!active) return;
         setGroup(data);
       } catch (err) {
+        if (!active) return;
         console.error('Erreur de chargement du groupe :', err);
         setError(
           'Impossible de charger les détails du groupe. Vérifie ta connexion.'
         );
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
-    if (id) {
-      loadGroup();
-    } else {
-      setError('Identifiant du groupe introuvable.');
-      setLoading(false);
-    }
+    void loadGroup();
+
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   const formatDate = (date: string) => {

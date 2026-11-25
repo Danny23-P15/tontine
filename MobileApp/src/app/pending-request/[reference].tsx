@@ -7,10 +7,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { downloadReceipt, openReceipt } from '../../services/receiptService';
 
 import {
   getOperationDetail,
@@ -47,6 +49,7 @@ const AVATAR_COLORS = [
 ];
 
 export default function OperationDetailScreen() {
+  const [downloading, setDownloading] = useState(false);
   const { reference } = useLocalSearchParams<{ reference: string }>();
   const router = useRouter();
 
@@ -80,10 +83,20 @@ export default function OperationDetailScreen() {
     [reference]
   );
 
-  useEffect(() => {
-    loadOperation();
-  }, [loadOperation]);
+useEffect(() => {
+  let isMounted = true;
 
+  const fetchOperation = async () => {
+    if (!isMounted) return;
+    await loadOperation();
+  };
+
+  void fetchOperation();
+
+  return () => {
+    isMounted = false;
+  };
+}, [loadOperation]);
   /* ---------- Helpers ---------- */
   const formatDate = (value: string | null) => {
     if (!value) return 'Non disponible';
@@ -120,6 +133,8 @@ export default function OperationDetailScreen() {
         return 'person-remove-outline';
       case 'DELETE_GROUP':
         return 'trash-outline';
+      case 'TRANSACTION':
+        return 'receipt-outline';
       default:
         return 'document-text-outline';
     }
@@ -170,7 +185,7 @@ export default function OperationDetailScreen() {
     return `${n.toLocaleString('fr-FR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    })} €`;
+    })} Ar`;
   };
 
   const getInitials = (name?: string, fallback?: string) => {
@@ -269,6 +284,23 @@ export default function OperationDetailScreen() {
     };
   })();
 
+    const handleReceipt = async () => {
+    if (downloading) return;
+
+    try {
+      setDownloading(true);
+      const file = await downloadReceipt(operation.reference);
+      await openReceipt(file);
+    } catch (err: any) {
+      Alert.alert(
+        'Justificatif indisponible',
+        err?.message ?? 'Impossible de récupérer le justificatif.'
+      );
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   /* ---------- Rendu ---------- */
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -349,7 +381,7 @@ export default function OperationDetailScreen() {
 
           {delay !== null && (
             <Text style={styles.footnote}>
-              Délai de validation : {delay} heures après l'initiation.
+              Délai de validation : {delay} heures après initiation.
             </Text>
           )}
 
@@ -422,8 +454,30 @@ export default function OperationDetailScreen() {
             <View style={styles.noticeTexts}>
               <Text style={styles.noticeTitle}>{myNotice.title}</Text>
               <Text style={styles.noticeText}>{myNotice.text}</Text>
+
+                        {operation.receipt_available && (
+            <TouchableOpacity
+              style={[styles.receiptButton, downloading && styles.receiptButtonDisabled]}
+              onPress={handleReceipt}
+              disabled={downloading}
+              accessibilityRole="button"
+              accessibilityLabel="Télécharger le justificatif"
+            >
+              {downloading ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <>
+                  <Ionicons name="download-outline" size={18} color={COLORS.white} />
+                  <Text style={styles.receiptButtonText}>
+                    Télécharger le justificatif (PDF)
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
             </View>
           </View>
+
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -709,5 +763,19 @@ const styles = StyleSheet.create({
     color: COLORS.slate,
     marginTop: 2,
   },
+
+    /* Justificatif */
+  receiptButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.ink,
+    paddingVertical: 15,
+    borderRadius: 14,
+    marginTop: 18,
+  },
+  receiptButtonDisabled: { opacity: 0.6 },
+  receiptButtonText: { color: COLORS.white, fontSize: 14, fontWeight: '700' },
 });
 // router

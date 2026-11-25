@@ -27,6 +27,7 @@ export default function GroupCreationResponsesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [referenceTime] = useState<number>(() => Date.now());
 
   const [refusalModalVisible, setRefusalModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] =
@@ -54,12 +55,27 @@ export default function GroupCreationResponsesScreen() {
     }
   }, []);
 
+  // useEffect(() => {
+  //   loadRequests();
+  // }, [loadRequests]);
+
   useEffect(() => {
-    loadRequests();
-  }, [loadRequests]);
+  let isMounted = true;
+
+const fetchRequests = async () => {
+    if (!isMounted) return;
+    await loadRequests();
+  };
+
+  void fetchRequests();
+
+  return () => {
+    isMounted = false;
+  };
+}, [loadRequests]);
 
   const isExpired = (request: PendingGroupCreation) =>
-    new Date(request.expires_at).getTime() <= Date.now();
+    new Date(request.expires_at).getTime() <= referenceTime;
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleString();
@@ -77,7 +93,9 @@ export default function GroupCreationResponsesScreen() {
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Accepter',
-          onPress: () => submitResponse(request, true),
+          onPress: () => {
+            void submitResponse(request, true);
+          },
         },
       ],
     );

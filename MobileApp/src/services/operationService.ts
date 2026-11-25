@@ -1,3 +1,4 @@
+import api from './api';
 
 export type OperationValidation = {
   validator_phone_number: string;
@@ -26,6 +27,7 @@ export type OperationDetail = {
   total_validators: number;
   can_respond: boolean;
   my_validation_status: string;
+  receipt_available?: boolean;
 };
 
 export const getOperationDetail = async (
@@ -40,7 +42,6 @@ export const getOperationDetail = async (
 
 
 
-import api from './api';
 
 export const respondToOperation = async (
   operation_id: number,

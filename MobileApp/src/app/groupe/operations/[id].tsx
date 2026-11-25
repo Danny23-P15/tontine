@@ -65,9 +65,20 @@ export default function GroupOperationsScreen() {
     }
   }, [id, search]);
 
-  useEffect(() => {
-    loadOperations();
-  }, [loadOperations]);
+useEffect(() => {
+  let isMounted = true;
+
+  const fetchOperations = async () => {
+    if (!isMounted) return;
+    await loadOperations();
+  };
+
+  void fetchOperations();
+
+  return () => {
+    isMounted = false;
+  };
+}, [loadOperations]);
 
   const formatDate = (value: string | null) => {
     if (!value) return 'Non disponible';

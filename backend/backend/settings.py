@@ -37,6 +37,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '192.168.1.159',
+    '192.168.227.240'
 ]
 
 AUTH_USER_MODEL = "core.User"

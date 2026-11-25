@@ -1,6 +1,29 @@
 
 import api from './api';
 
+export type PendingGroupCreation = {
+  id: number;
+  group_name: string;
+  initiator_phone_number: string;
+  approved_count: number;
+  total_validators: number;
+  quorum: number;
+  created_at: string;
+  expires_at: string;
+};
+
+export const getPendingGroupCreations =
+  async (): Promise<PendingGroupCreation[]> => {
+    const response = await api.get('groups/creation/pending/');
+    const data = response.data;
+
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    return data.results ?? data.pending ?? [];
+  };
+
 export type PendingGroupCreationNotification = {
   id: string;
   type: string;
