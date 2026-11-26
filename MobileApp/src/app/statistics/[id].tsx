@@ -14,9 +14,9 @@ import {
 import { BarChart } from 'react-native-gifted-charts';
 
 import {
-  getGroupStatistics,
   StatisticsData,
   StatisticsPeriod,
+  getGroupStatistics,
 } from '../../services/statisticsService';
 
 const LIME = '#c6f45a';
@@ -90,7 +90,7 @@ export default function GroupStatisticsScreen() {
       active = false;
     };
   }, [id, period]);
-
+// styles.header
   // Conversion des montants reçus sous forme de chaînes en nombres
   const chartData = useMemo(() => {
     if (!statistics) return [];
@@ -174,14 +174,15 @@ export default function GroupStatisticsScreen() {
         </View>
       </View>
 
-      {loading ? (
+
+      {loading && !statistics ? (
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={DARK} />
           <Text style={styles.loadingText}>
             Chargement des statistiques...
           </Text>
         </View>
-      ) : error ? (
+      ) : error && !statistics ? (
         <View style={styles.centerContent}>
           <Ionicons
             name="alert-circle-outline"

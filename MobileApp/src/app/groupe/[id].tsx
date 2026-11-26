@@ -532,6 +532,15 @@ useEffect(() => {
             <Ionicons name="time-outline" size={16} color={DARK} />
             <Text style={styles.historyButtonText}>Historique</Text>
           </Pressable>
+
+          <Pressable
+            style={styles.historyButton}
+            onPress={() => router.push(`/statistics/${group.id}`)}
+            accessibilityRole="button"
+          >
+          <Ionicons name="stats-chart-outline" size={16} color={DARK} />
+            <Text style={styles.historyButtonText}>Statistiques</Text>
+          </Pressable>
         </View>
 
         <View style={styles.formCard}>

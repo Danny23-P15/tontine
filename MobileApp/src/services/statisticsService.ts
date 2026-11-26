@@ -25,7 +25,7 @@ export const getGroupStatistics = async (
   period: StatisticsPeriod
 ): Promise<StatisticsData> => {
   const response = await api.get<StatisticsData>(
-    `operations/groups/${groupId}/statistics/`,
+    `groups/${groupId}/statistics/`,
     {
       params: { period },
     }

@@ -1245,7 +1245,7 @@ class GroupStatisticsAPIView(APIView):
         return Response({
             "group_id": group.id,
             "group_name": group.group_name,
-            "total_transactions": successful,
+            "total_transactions": total_resolved,
             "successful_transactions": successful,
             "failed_transactions": failed,
             "success_rate": round(success_rate, 2),
