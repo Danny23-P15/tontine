@@ -1,10 +1,11 @@
 
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -46,7 +47,8 @@ export default function GroupStatisticsScreen() {
   const [error, setError] = useState('');
 
   // Récupération des statistiques à chaque changement de période
-  useEffect(() => {
+  useFocusEffect(
+    useCallback(() => {
     let active = true;
 
     const loadStatistics = async () => {
@@ -89,7 +91,7 @@ export default function GroupStatisticsScreen() {
     return () => {
       active = false;
     };
-  }, [id, period]);
+  }, [id, period]));
 // styles.header
   // Conversion des montants reçus sous forme de chaînes en nombres
   const chartData = useMemo(() => {
@@ -206,6 +208,13 @@ export default function GroupStatisticsScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading && !!statistics}
+              onRefresh={retry}
+              tintColor={DARK}
+            />
+          }
         >
           {/* Nom du groupe */}
           <View style={styles.groupHeader}>
@@ -308,12 +317,12 @@ export default function GroupStatisticsScreen() {
               </View>
 
               <View style={styles.chartIcon}>
-                <Ionicons
-                  name="bar-chart"
-                  size={20}
-                  color={DARK}
-                />
-              </View>
+              {loading ? (
+                <ActivityIndicator size="small" color={DARK} />
+              ) : (
+                <Ionicons name="bar-chart" size={20} color={DARK} />
+              )}
+            </View>
             </View>
 
             {/* Sélection de la période */}
