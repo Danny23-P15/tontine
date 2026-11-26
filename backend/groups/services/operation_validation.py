@@ -127,97 +127,186 @@ def respond_to_add_validator_request(
     rejection_reason: str | None = None
 ) -> tuple[bool, str]:
 
-    if operation.operation_type != OperationType.ADD_VALIDATOR:
-        return False, "Opération invalide"
+    User = get_user_model()
 
-    if operation.expires_at < timezone.now():
-        return False, "Cette demande a expiré"
+    notification_event = None
+    notification_source = None
+    notification_actor = None
 
-    try:
-        validation = OperationValidation.objects.get(
-            operation=operation,
-            validator_phone_number=validator_phone
+    with transaction.atomic():
+
+        # 1. Verrouiller l'opération
+        try:
+            operation = Operation.objects.select_for_update().select_related(
+                "group"
+            ).get(pk=operation.pk)
+        except Operation.DoesNotExist:
+            return False, "Cette opération n'existe plus"
+
+        if operation.operation_type != OperationType.ADD_VALIDATOR:
+            return False, "Opération invalide"
+
+        if operation.status not in [
+            OperationStatus.PENDING,
+            OperationStatus.APPROVED
+        ]:
+            return False, "Cette opération n'est plus en attente"
+
+        if operation.expires_at < timezone.now():
+            return False, "Cette demande a expiré"
+
+        # 2. Récupérer le validateur autorisé à répondre
+        try:
+            validation = OperationValidation.objects.get(
+                operation=operation,
+                validator_phone_number=validator_phone
+            )
+        except OperationValidation.DoesNotExist:
+            return False, "Vous n'êtes pas autorisé à répondre"
+
+        if validation.status != ValidationStatus.PENDING:
+            return False, "Vous avez déjà répondu"
+
+        group = operation.group
+
+        # 3. Enregistrer la réponse
+        validation.status = (
+            ValidationStatus.ACCEPTED
+            if accept
+            else ValidationStatus.REJECTED
         )
-    except OperationValidation.DoesNotExist:
-        return False, "Vous n’êtes pas autorisé à répondre"
+        validation.rejection_reason = (
+            rejection_reason if not accept else None
+        )
+        validation.validated_at = timezone.now()
+        validation.save()
 
-    if validation.status != ValidationStatus.PENDING:
-        return False, "Vous avez déjà répondu"
+        # 4. Calculer les réponses
+        total = operation.validations.count()
 
-    # 📝 Enregistrement réponse
-    validation.status = (
-        ValidationStatus.ACCEPTED if accept else ValidationStatus.REJECTED
-    )
-    validation.rejection_reason = rejection_reason if not accept else None
-    validation.validated_at = timezone.now()
-    validation.save()
+        accepted = operation.validations.filter(
+            status=ValidationStatus.ACCEPTED
+        ).count()
 
-    group = operation.group
-    total = operation.validations.count()
-    accepted = operation.validations.filter(
-        status=ValidationStatus.ACCEPTED
-    ).count()
-    rejected = operation.validations.filter(
-        status=ValidationStatus.REJECTED
-    ).count()
+        rejected = operation.validations.filter(
+            status=ValidationStatus.REJECTED
+        ).count()
 
-    # 📊 Vérifier si le quorum est encore atteignable
-    remaining = total - (accepted + rejected)
-    max_possible_accept = accepted + remaining
+        remaining = total - (accepted + rejected)
+        max_possible_accept = accepted + remaining
 
-    if max_possible_accept < group.quorum:
-        # ❌ Quorum impossible à atteindre → rejet
-        operation.mark_rejected()
+        # 5. Vérifier si le quorum est encore atteignable
+        if max_possible_accept < group.quorum:
+
+            operation.mark_rejected()
+
+            notification_event = OperationEvent.ADD_VALIDATOR_REJECTED
+            notification_source = group
+            notification_actor = validator_phone
+
+            message = "Demande de validateur rejetée (quorum impossible)"
+
+        # 6. Le quorum est atteint : vérifier la limite des trois groupes
+        elif accepted >= group.quorum:
+
+            payload = operation.payload or {}
+
+            validator_phone_to_add = payload.get(
+                "validator_phone_number"
+            )
+            cin = payload.get("cin")
+
+            if not validator_phone_to_add or not cin:
+                return False, "Les informations du validateur sont incomplètes"
+
+            # Verrouiller le compte du futur membre
+            try:
+                User.objects.select_for_update().get(
+                    phone_number=validator_phone_to_add
+                )
+            except User.DoesNotExist:
+                return False, "Ce compte utilisateur n'existe plus"
+
+            # Recalculer les groupes en excluant cette opération
+            stats = get_user_group_stats(
+                validator_phone_to_add,
+                exclude_operation_id=operation.id
+            )
+
+            if stats["total_groups"] >= 3:
+
+                # La personne n'a plus de place disponible
+                operation.mark_rejected()
+
+                notification_event = OperationEvent.ADD_VALIDATOR_REJECTED
+                notification_source = operation
+                notification_actor = validator_phone_to_add
+
+                message = (
+                    "L'ajout a été annulé : ce numéro appartient déjà "
+                    "à trois groupes ou dispose de réservations "
+                    "qui occupent ses places disponibles."
+                )
+
+            else:
+
+                # Vérifier une dernière fois les doublons
+                already_member = GroupMembership.objects.filter(
+                    group=group,
+                    phone_number=validator_phone_to_add,
+                    left_at__isnull=True
+                ).exists()
+
+                if already_member:
+                    operation.mark_rejected()
+
+                    notification_event = OperationEvent.ADD_VALIDATOR_REJECTED
+                    notification_source = operation
+                    notification_actor = validator_phone_to_add
+
+                    message = "Ce numéro appartient déjà à ce groupe"
+
+                else:
+                    # 7. Créer l'adhésion
+                    GroupMembership.objects.create(
+                        group=group,
+                        phone_number=validator_phone_to_add,
+                        cin=cin,
+                        role=GroupRole.VALIDATOR
+                    )
+
+                    group.update_active_status()
+                    operation.mark_completed()
+
+                    notification_event = OperationEvent.VALIDATOR_ADDED
+                    notification_source = operation
+                    notification_actor = validator_phone_to_add
+
+                    message = (
+                        "Le validateur a été ajouté au groupe "
+                        "(Quorum atteint)"
+                    )
+
+        else:
+            # 8. Quorum pas encore atteint
+            notification_event = OperationEvent.VALIDATION_RECORDED
+            notification_source = operation
+            notification_actor = validator_phone
+
+            message = "Votre réponse a été enregistrée"
+
+    # 9. Envoyer la notification après la transaction
+    if notification_event:
         try:
             notify_operation_status(
-                source=operation.group,
-                event=OperationEvent.ADD_VALIDATOR_REJECTED,
-                actor_phone=validator_phone
+                source=notification_source,
+                event=notification_event,
+                actor_phone=notification_actor
             )
         except Exception as e:
-            print(f"Erreur notification validateur rejeté: {str(e)}")
-        return True, "Demande de validateur rejetée (quorum impossible)"
+            print(f"Erreur notification : {str(e)}")
 
-    # ✅ Quorum atteint
-    if accepted >= group.quorum:
-        payload = operation.payload
-        validator_phone_to_add = payload["validator_phone_number"]
-        cin = payload["cin"]
-
-        with transaction.atomic():
-            GroupMembership.objects.create(
-                group=operation.group,
-                phone_number=validator_phone_to_add,
-                cin=cin,
-                role=GroupRole.VALIDATOR
-            )
-
-            # Mettre à jour l'état du groupe après ajout du validateur
-            group.update_active_status()
-            
-            operation.mark_completed()
-
-        try:
-            notify_operation_status(
-                source=operation,
-                event=OperationEvent.VALIDATOR_ADDED,
-                actor_phone=validator_phone_to_add,
-            )
-        except Exception as e:
-            # Log l'erreur mais ne pas échouer la requête
-            print(f"Erreur notification validateur ajouté: {str(e)}")
-
-        return True, "Le validateur a été ajouté au groupe (Quorum atteint)"
-
-    # ⏳ Quorum pas encore atteint mais possible
-    notify_operation_status(
-        source=operation,
-        event=OperationEvent.VALIDATION_RECORDED,
-        actor_phone=validator_phone
-    )
-    
-    return True, "Votre réponse a été enregistrée"
-
+    return True, message
 
 def execute_add_validator(operation: Operation):
     data = operation.payload

@@ -3,42 +3,88 @@ from groups.models import ValidationGroup, TemporaryGroupCreation
 from django.utils import timezone
 from groups.models import Operation, OperationType, OperationStatus, Account
 from decimal import Decimal
+from django.db.models import Q
 
 
 
 
-def get_user_group_stats(phone_number: str) -> dict:
+def get_user_group_stats(
+    phone_number: str,
+    exclude_operation_id: int | None = None
+) -> dict:
 
-    # Groupes dans lesquels l'utilisateur est initiateur
+    now = timezone.now()
+
+    # 1. Groupes réels dont l'utilisateur est initiateur
     initiated_groups = ValidationGroup.objects.filter(
         initiator_phone_number=phone_number,
-        is_active=True,
         deleted_at__isnull=True
     ).values_list("id", flat=True)
 
-    # Groupes dans lesquels l'utilisateur est validateur actif
+    # 2. Groupes réels où l'utilisateur est validateur
     validator_groups = GroupMembership.objects.filter(
         phone_number=phone_number,
         role=GroupRole.VALIDATOR,
         left_at__isnull=True,
-        is_active=True,
-        group__is_active=True,
         group__deleted_at__isnull=True
     ).values_list("group_id", flat=True)
 
-    # Regrouper les identifiants sans doublons
     initiated_ids = set(initiated_groups)
     validator_ids = set(validator_groups)
 
-    all_group_ids = initiated_ids | validator_ids
+    occupied_group_ids = initiated_ids | validator_ids
+
+    # 3. Demandes temporaires actives où l'utilisateur est
+    # initiateur ou validateur sélectionné
+    pending_creations = TemporaryGroupCreation.objects.filter(
+        Q(initiator_phone_number=phone_number)
+        | Q(validators__phone_number=phone_number),
+        is_cancelled=False,
+        expires_at__gt=now
+    ).values_list("id", flat=True).distinct()
+
+    pending_creation_ids = set(pending_creations)
+
+    # 4. Demandes d'ajout de validateur encore en attente
+    pending_additions_query = Operation.objects.filter(
+        operation_type=OperationType.ADD_VALIDATOR,
+        status__in=[
+            OperationStatus.PENDING,
+            OperationStatus.APPROVED
+        ],
+        expires_at__gt=now,
+        payload__validator_phone_number=phone_number,
+        group__deleted_at__isnull=True
+    ).exclude(
+        group_id__in=occupied_group_ids
+    )
+
+    # Ne pas compter la réservation de l'opération en cours
+    if exclude_operation_id is not None:
+        pending_additions_query = pending_additions_query.exclude(
+            id=exclude_operation_id
+        )
+
+    pending_addition_ids = set(
+        pending_additions_query.values_list(
+            "group_id", flat=True
+        ).distinct()
+    )
+
+    total_groups = (
+        len(occupied_group_ids)
+        + len(pending_creation_ids)
+        + len(pending_addition_ids)
+    )
 
     return {
         "initiator_count": len(initiated_ids),
         "validator_count": len(validator_ids),
-        "total_groups": len(all_group_ids),
+        "pending_creations": len(pending_creation_ids),
+        "pending_additions": len(pending_addition_ids),
+        "total_groups": total_groups,
+        "available": total_groups < 3,
     }
-
-
 def has_pending_non_transaction_operations(
     group: ValidationGroup,
     initiator_phone: str
