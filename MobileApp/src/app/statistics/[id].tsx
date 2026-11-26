@@ -92,8 +92,7 @@ export default function GroupStatisticsScreen() {
       active = false;
     };
   }, [id, period]));
-// styles.header
-  // Conversion des montants reçus sous forme de chaînes en nombres
+// Conversion des montants reçus sous forme de chaînes en nombres
   const chartData = useMemo(() => {
     if (!statistics) return [];
 
@@ -109,8 +108,14 @@ export default function GroupStatisticsScreen() {
         label = '';
       }
 
+      const cleanedTotal =
+        typeof item.total === 'string'
+          ? item.total.replace(/\s+/g, '').replace(',', '.')
+          : item.total;
+      const numericValue = Number(cleanedTotal);
+
       return {
-        value: Number(item.total) || 0,
+        value: Number.isFinite(numericValue) && numericValue > 0 ? numericValue : 0,
         label,
         frontColor: LIME,
       };
@@ -122,15 +127,12 @@ export default function GroupStatisticsScreen() {
     return chartData.reduce((sum, item) => sum + item.value, 0);
   }, [chartData]);
 
-  const maxChartValue = Math.max(
-    1,
-    ...chartData.map((item) => item.value)
-  );
+  const maxChartValue = useMemo(() => {
+    const maxVal = Math.max(0, ...chartData.map((item) => item.value));
+    return maxVal > 0 ? Math.ceil(maxVal * 1.15) : 10;
+  }, [chartData]);
 
-  const chartWidth = Math.max(
-    screenWidth - 64,
-    chartData.length * 38
-  );
+  const chartWidth = Math.max(200, screenWidth - 74);
 
   const retry = () => {
     // Le changement temporaire de période n'est pas nécessaire :
@@ -364,32 +366,29 @@ export default function GroupStatisticsScreen() {
             </View>
 
             {/* BarChart */}
-            {chartData.length > 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chartScroll}
-              >
-                <BarChart
-                  data={chartData}
-                  width={chartWidth}
-                  height={210}
-                  barWidth={18}
-                  spacing={20}
-                  initialSpacing={12}
-                  endSpacing={12}
-                  maxValue={maxChartValue * 1.15}
-                  noOfSections={4}
-                  roundedTop
-                  hideRules
-                  hideYAxisText
-                  xAxisColor="#e5e7eb"
-                  yAxisColor="transparent"
-                  xAxisLabelTextStyle={styles.axisLabel}
-                  isAnimated
-                />
-              </ScrollView>
-            ) : (
+        {chartData.length > 0 ? (
+                      <View style={{ overflow: 'hidden' }}>
+                        <BarChart
+                          data={chartData}
+                          width={chartWidth}
+                          height={210}
+                          barWidth={18}
+                          spacing={16}
+                          initialSpacing={10}
+                          endSpacing={10}
+                          maxValue={maxChartValue}
+                          noOfSections={4}
+                          roundedTop
+                          hideRules
+                          hideYAxisText
+                          yAxisLabelWidth={0}
+                          xAxisColor="#e5e7eb"
+                          yAxisColor="transparent"
+                          xAxisLabelTextStyle={styles.axisLabel}
+                          isAnimated={false}
+                        />
+                      </View>
+                    ) : (
               <View style={styles.emptyChart}>
                 <Ionicons
                   name="bar-chart-outline"
@@ -657,10 +656,6 @@ const styles = StyleSheet.create({
     fontSize: 23,
     fontWeight: '800',
     marginTop: 5,
-  },
-  chartScroll: {
-    paddingTop: 10,
-    paddingBottom: 5,
   },
   axisLabel: {
     color: MUTED,
