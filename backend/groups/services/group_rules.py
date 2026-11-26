@@ -4,29 +4,38 @@ from django.utils import timezone
 from groups.models import Operation, OperationType, OperationStatus, Account
 from decimal import Decimal
 
-def get_user_group_stats(phone_number: str) -> dict:
-    memberships = GroupMembership.objects.filter(
-        phone_number=phone_number,
-        left_at__isnull=True
-    )
 
-    initiator_count = memberships.filter(
-        role=GroupRole.INITIATOR,
+
+
+def get_user_group_stats(phone_number: str) -> dict:
+
+    # Groupes dans lesquels l'utilisateur est initiateur
+    initiated_groups = ValidationGroup.objects.filter(
+        initiator_phone_number=phone_number,
+        is_active=True,
+        deleted_at__isnull=True
+    ).values_list("id", flat=True)
+
+    # Groupes dans lesquels l'utilisateur est validateur actif
+    validator_groups = GroupMembership.objects.filter(
+        phone_number=phone_number,
+        role=GroupRole.VALIDATOR,
         left_at__isnull=True,
+        is_active=True,
         group__is_active=True,
         group__deleted_at__isnull=True
-    ).count()
+    ).values_list("group_id", flat=True)
 
-    validator_count = memberships.filter(
-        role=GroupRole.VALIDATOR
-    ).count()
+    # Regrouper les identifiants sans doublons
+    initiated_ids = set(initiated_groups)
+    validator_ids = set(validator_groups)
 
-    total_groups = memberships.count()
+    all_group_ids = initiated_ids | validator_ids
 
     return {
-        "initiator_count": initiator_count,
-        "validator_count": validator_count,
-        "total_groups": total_groups,
+        "initiator_count": len(initiated_ids),
+        "validator_count": len(validator_ids),
+        "total_groups": len(all_group_ids),
     }
 
 
@@ -101,36 +110,65 @@ def can_add_validator(
     validator_cin: str
 ) -> tuple[bool, str | None]:
 
+    # 1. Empêcher l'initiateur de s'ajouter lui-même
     if initiator_phone == validator_phone:
         return False, "Vous ne pouvez pas vous ajouter vous-même"
 
-    # Vérifier s'il y a une opération non-transaction en attente
+    # 2. Vérifier les opérations déjà en attente
     if has_pending_non_transaction_operations(group, initiator_phone):
-        return False, "Une opération est déjà en attente. Veuillez attendre sa résolution avant d'en initier une nouvelle."
+        return False, (
+            "Une opération est déjà en attente. "
+            "Veuillez attendre sa résolution avant d'en initier une nouvelle."
+        )
 
-    # CIN déjà utilisé dans ce groupe
+    # 3. Vérifier si le numéro est déjà membre du groupe
+    if group.memberships.filter(
+        phone_number=validator_phone,
+        left_at__isnull=True
+    ).exists():
+        return False, "Ce numéro appartient déjà à ce groupe"
+
+    # 4. Vérifier si le CIN est déjà utilisé dans ce groupe
     if group.memberships.filter(
         cin=validator_cin,
         left_at__isnull=True
     ).exists():
-        return False, "Ce validateur (CIN) est déjà dans le groupe"
+        return False, "Ce CIN est déjà utilisé dans ce groupe"
 
-    # Limite maximale de validateurs par groupe
+    # 5. Vérifier si une demande d'ajout existe déjà
+    pending_addition = Operation.objects.filter(
+        group=group,
+        operation_type=OperationType.ADD_VALIDATOR,
+        status__in=[
+            OperationStatus.PENDING,
+            OperationStatus.APPROVED
+        ],
+        expires_at__gt=timezone.now(),
+        payload__validator_phone_number=validator_phone
+    ).exists()
+
+    if pending_addition:
+        return False, "Une demande d'ajout existe déjà pour ce numéro"
+
+    # 6. Vérifier le nombre maximal de validateurs
     active_validators_count = group.memberships.filter(
         role=GroupRole.VALIDATOR,
         left_at__isnull=True
     ).count()
 
-    if active_validators_count >= getattr(group, "validator_max_number", 5):
-        return False, "Le groupe a atteint le nombre maximum de validateurs (5)"
+    if active_validators_count >= group.validator_max_number:
+        return False, (
+            f"Le groupe a atteint le nombre maximum "
+            f"de validateurs ({group.validator_max_number})"
+        )
 
+    # 7. Vérifier la limite globale de trois groupes
     stats = get_user_group_stats(validator_phone)
 
     if stats["total_groups"] >= 3:
         return False, "Ce numéro appartient déjà à 3 groupes"
 
     return True, None
-
 
 def can_remove_validator(
     group: ValidationGroup,
@@ -163,12 +201,12 @@ def can_remove_validator(
     remaining_validators = active_validators_count - 1
 
     # vérifier la survie du groupe (RÈGLE MÉTIER)
-    # Permettre la suppression si remaining_validators >= quorum
-    if remaining_validators < group.quorum:
+    # Le nombre de validateurs restants doit être supérieur au quorum.
+    if remaining_validators <= group.quorum:
         return (
             False,
             "Impossible de supprimer ce validateur : "
-            "le groupe deviendrait inactif"
+            "le nombre de validateurs restants doit être supérieur au quorum"
         )
 
     return True, None

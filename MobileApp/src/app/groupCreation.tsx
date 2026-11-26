@@ -474,3 +474,5 @@ const styles = StyleSheet.create({
   submitButtonActive: { backgroundColor: DARK },
   submitButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
 });
+
+// results

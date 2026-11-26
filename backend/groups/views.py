@@ -13,6 +13,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q
+from django.db.models.fields.json import KeyTextTransform
 
 from datetime import datetime, time, timedelta
 
@@ -24,7 +25,8 @@ from django.utils import timezone
 from core.models import User
 from groups.models import (
     Operation, OperationStatus, OperationType, Transaction,
-    ValidationGroup, ValidationStatus, TemporaryGroupCreation, Account, GroupMembership
+    ValidationGroup, ValidationStatus, TemporaryGroupCreation,
+    TemporaryGroupValidator, Account, GroupMembership
 )
 from groups.serializers import (
     AddValidatorSerializer, CreateGroupRequestSerializer,
@@ -769,10 +771,27 @@ class ValidatorSuggestionsAPIView(APIView):
         if len(phone) < 3:
             return Response({"results": []})
 
+        active_temporary_validator_phones = TemporaryGroupValidator.objects.filter(
+            temp_group__is_cancelled=False,
+            temp_group__expires_at__gt=timezone.now()
+        ).values("phone_number")
+        pending_add_validator_phones = Operation.objects.filter(
+            operation_type=OperationType.ADD_VALIDATOR,
+            status=OperationStatus.PENDING,
+            expires_at__gt=timezone.now()
+        ).annotate(
+            validator_phone=KeyTextTransform(
+                "validator_phone_number",
+                "payload"
+            )
+        ).values("validator_phone").filter(validator_phone__isnull=False)
+
         users = (
             User.objects
             .filter(phone_number__startswith=phone)
             .exclude(pk=request.user.pk)
+            .exclude(phone_number__in=active_temporary_validator_phones)
+            .exclude(phone_number__in=pending_add_validator_phones)
             .order_by("phone_number")
         )
 

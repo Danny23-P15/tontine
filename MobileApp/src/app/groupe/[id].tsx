@@ -23,6 +23,10 @@ import {
   requestDeleteGroup,
   requestRemoveValidator,
 } from '../../services/groupService';
+import {
+  searchValidators,
+  type ValidatorSuggestion,
+} from '../../services/validatorService';
 
 type Member = {
   full_name: string;
@@ -89,6 +93,13 @@ export default function GroupDetailScreen() {
   const [manageVisible, setManageVisible] = useState(false);
   const [manageTab, setManageTab] = useState<ManageTab>('add');
   const [validatorPhone, setValidatorPhone] = useState('');
+  const [selectedValidator, setSelectedValidator] =
+    useState<ValidatorSuggestion | null>(null);
+  const [validatorSuggestions, setValidatorSuggestions] = useState<
+    ValidatorSuggestion[]
+  >([]);
+  const [searchingValidators, setSearchingValidators] = useState(false);
+  const [validatorSearchError, setValidatorSearchError] = useState('');
   const [phoneFocused, setPhoneFocused] = useState(false);
   const [addingValidator, setAddingValidator] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
@@ -121,6 +132,9 @@ export default function GroupDetailScreen() {
   const openManage = () => {
     setManageTab('add');
     setValidatorPhone('');
+    setSelectedValidator(null);
+    setValidatorSuggestions([]);
+    setValidatorSearchError('');
     setMemberToRemove(null);
     setDropdownOpen(false);
     setManageVisible(true);
@@ -156,6 +170,8 @@ export default function GroupDetailScreen() {
       const result = await requestAddValidator(Number(id), phone);
 
       setValidatorPhone('');
+      setSelectedValidator(null);
+      setValidatorSuggestions([]);
       Alert.alert(
         'Demande envoyée',
         result.detail ?? 'La demande d’ajout a été envoyée.',
@@ -297,6 +313,69 @@ useEffect(() => {
       active = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    let active = true;
+    const query = validatorPhone.trim();
+    const shouldSearch =
+      manageVisible &&
+      manageTab === 'add' &&
+      query.length >= 3 &&
+      !addingValidator &&
+      selectedValidator?.phone_number !== query;
+
+    if (!shouldSearch) {
+      setValidatorSuggestions([]);
+      setValidatorSearchError('');
+      setSearchingValidators(false);
+    } else {
+      setValidatorSuggestions([]);
+      setValidatorSearchError('');
+      setSearchingValidators(true);
+    }
+
+    const timer = setTimeout(async () => {
+      if (!shouldSearch) return;
+
+      try {
+        const results = await searchValidators(query);
+        if (active) {
+          setValidatorSuggestions(
+            results.filter(
+              (suggestion) =>
+                !group?.members.some(
+                  (member) => member.phone_number === suggestion.phone_number
+                )
+            )
+          );
+        }
+      } catch (err) {
+        console.error('Erreur de recherche des validateurs :', err);
+        if (active) {
+          setValidatorSuggestions([]);
+          setValidatorSearchError(
+            'Impossible de rechercher des utilisateurs. Réessaie.'
+          );
+        }
+      } finally {
+        if (active) {
+          setSearchingValidators(false);
+        }
+      }
+    }, shouldSearch ? 300 : 0);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [
+    addingValidator,
+    group?.members,
+    manageTab,
+    manageVisible,
+    selectedValidator,
+    validatorPhone,
+  ]);
 
   const formatDate = (date: string) => {
     if (!date) return 'Non disponible';
@@ -678,13 +757,56 @@ useEffect(() => {
                       placeholder="Numéro de téléphone"
                       placeholderTextColor="#9ca3af"
                       value={validatorPhone}
-                      onChangeText={setValidatorPhone}
+                      onChangeText={(value) => {
+                        setValidatorPhone(value);
+                        setSelectedValidator(null);
+                      }}
                       onFocus={() => setPhoneFocused(true)}
                       onBlur={() => setPhoneFocused(false)}
                       keyboardType="phone-pad"
                       autoCapitalize="none"
                       editable={!addingValidator}
                     />
+                    {validatorPhone.trim().length >= 3 &&
+                      !selectedValidator && (
+                        <View style={styles.validatorSuggestions}>
+                          {searchingValidators ? (
+                            <View style={styles.validatorSuggestionMessage}>
+                              <ActivityIndicator size="small" color={DARK} />
+                              <Text style={styles.validatorSuggestionMessageText}>
+                                Recherche des utilisateurs...
+                              </Text>
+                            </View>
+                          ) : validatorSuggestions.length > 0 ? (
+                            validatorSuggestions.map((suggestion) => (
+                              <Pressable
+                                key={suggestion.id}
+                                style={styles.validatorSuggestionItem}
+                                onPress={() => {
+                                  setValidatorPhone(suggestion.phone_number);
+                                  setSelectedValidator(suggestion);
+                                  setValidatorSuggestions([]);
+                                }}
+                              >
+                                <Text style={styles.validatorSuggestionName}>
+                                  {suggestion.full_name}
+                                </Text>
+                                <Text style={styles.validatorSuggestionPhone}>
+                                  {suggestion.phone_number}
+                                </Text>
+                              </Pressable>
+                            ))
+                          ) : validatorSearchError ? (
+                            <Text style={styles.validatorSuggestionEmpty}>
+                              {validatorSearchError}
+                            </Text>
+                          ) : (
+                            <Text style={styles.validatorSuggestionEmpty}>
+                              Aucun nouveau membre trouvé.
+                            </Text>
+                          )}
+                        </View>
+                      )}
                     <Text style={styles.fieldHint}>
                       Une demande sera envoyée aux {group.quorum} validateur
                       {group.quorum > 1 ? 's' : ''} requis.
@@ -1216,6 +1338,30 @@ const styles = StyleSheet.create({
   },
   sheetInputFocused: { borderColor: LIME },
   fieldHint: { fontSize: 12, color: '#6b7280', marginTop: 10 },
+  validatorSuggestions: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 14,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  validatorSuggestionItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  validatorSuggestionName: { fontSize: 15, fontWeight: '600', color: DARK },
+  validatorSuggestionPhone: { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  validatorSuggestionMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 14,
+  },
+  validatorSuggestionMessageText: { fontSize: 13, color: '#6b7280' },
+  validatorSuggestionEmpty: { padding: 14, fontSize: 13, color: '#6b7280' },
 
   // Liste déroulante
   dropdown: {

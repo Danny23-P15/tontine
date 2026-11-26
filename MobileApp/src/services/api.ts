@@ -2,7 +2,8 @@ import { create } from 'axios';
 import { getAccessToken } from './tokenService';
 
 const api = create({
-  baseURL: 'http://192.168.227.240:8000/api/',
+  // baseURL: 'http://192.168.227.240:8000/api/',
+  baseURL: 'http://192.168.1.159:8000/api/',
   timeout: 10000,
 });
 
