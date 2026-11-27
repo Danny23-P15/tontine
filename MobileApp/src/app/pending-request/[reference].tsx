@@ -17,6 +17,7 @@ import { downloadReceipt, openReceipt } from '../../services/receiptService';
 import {
   getOperationDetail,
   OperationDetail,
+  TargetValidator,
 } from '../../services/operationService';
 
 /* ---------- Palette ---------- */
@@ -245,6 +246,9 @@ useEffect(() => {
     .join(' · ');
   const opTone = statusTone(operation.status);
   const delay = validityDelay(operation.created_at, operation.expires_at);
+  const targetValidators =
+    operation.target_validators ??
+    (operation.target_validator ? [operation.target_validator] : []);
 
   const myStatus = operation.my_validation_status;
   const myNotice = (() => {
@@ -365,6 +369,20 @@ useEffect(() => {
             <InfoRow label="Groupe" value={operation.group.group_name} />
             <InfoRow label="Initiateur" value={operation.initiator_phone_number} />
             <InfoRow label="Initiée le" value={formatDate(operation.created_at)} />
+              {targetValidators.length > 0 && (
+                <InfoRow
+                  label={
+                    targetValidators[0].action === 'ADD'
+                      ? 'Validateur à ajouter'
+                      : 'Validateur à supprimer'
+                  }
+                  value={
+                    targetValidators[0].full_name
+                      ? `${targetValidators[0].full_name}\n${targetValidators[0].phone_number}`
+                      : targetValidators[0].phone_number
+                  }
+                />
+              )}
             <InfoRow
               label="Expire le"
               value={formatDate(operation.expires_at)}

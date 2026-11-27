@@ -962,6 +962,10 @@ class OperationDetailAPIView(APIView):
             "expires_at": operation.expires_at,
             "completed_at": operation.completed_at,
 
+            "payload": operation.payload or {},
+            "target_validator": get_target_validator(operation),
+            "target_validators": get_target_validators(operation),
+
             "validations": validation_data,
 
             "approved_count": accepted_count,
@@ -1049,6 +1053,8 @@ class OperationHistoryDetailAPIView(APIView):
                 "quorum": operation.group.quorum,
             },
             "payload": operation.payload or {},
+            "target_validator": get_target_validator(operation),
+            "target_validators": get_target_validators(operation),
             "created_at": operation.created_at,
             "expires_at": operation.expires_at,
             "completed_at": operation.completed_at,
@@ -1338,4 +1344,37 @@ class OperationReceiptAPIView(APIView):
             filename=f"justificatif-{tx.reference}.pdf",
         )
 
+def get_target_validator(operation):
+    """Validateur concerné par une opération d'ajout ou de suppression."""
+    if operation.operation_type not in (
+        OperationType.ADD_VALIDATOR,
+        OperationType.REMOVE_VALIDATOR,
+    ):
+        return None
+
+    payload = operation.payload or {}
+    phone = (
+        payload.get("validator_phone_number")
+        or payload.get("validator_phone_to_remove")
+    )
+    if not phone:
+        return None
+
+    user = User.objects.filter(phone_number=phone).only("full_name").first()
+
+    return {
+        "phone_number": phone,
+        "full_name": user.full_name if user else None,
+        "action": (
+            "ADD"
+            if operation.operation_type == OperationType.ADD_VALIDATOR
+            else "REMOVE"
+        ),
+    }
+
+
+def get_target_validators(operation):
+    """Liste du validateur concerné, prête à être consommée par le mobile."""
+    target = get_target_validator(operation)
+    return [target] if target is not None else []
 

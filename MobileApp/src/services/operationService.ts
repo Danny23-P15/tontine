@@ -18,6 +18,8 @@ export type OperationDetail = {
     quorum: number;
   };
   payload: Record<string, any>;
+  target_validators?: TargetValidator[];
+  target_validator?: TargetValidator | null;
   created_at: string;
   expires_at: string;
   completed_at: string | null;
@@ -30,6 +32,12 @@ export type OperationDetail = {
   receipt_available?: boolean;
 };
 
+export type TargetValidator = {
+  phone_number: string;
+  full_name: string | null;
+  action: 'ADD' | 'REMOVE';
+};
+
 export const getOperationDetail = async (
   reference: string
 ): Promise<OperationDetail> => {
@@ -39,7 +47,6 @@ export const getOperationDetail = async (
 
   return response.data;
 };
-
 
 
 
